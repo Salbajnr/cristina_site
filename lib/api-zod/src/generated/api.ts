@@ -32,6 +32,32 @@ export const GetProfileResponse = zod.object({
 });
 
 /**
+ * @summary Update creator profile (creator only)
+ */
+export const UpdateProfileBody = zod.object({
+  displayName: zod.string().optional(),
+  username: zod.string().optional(),
+  bio: zod.string().optional(),
+  avatarUrl: zod.string().optional(),
+  coverUrl: zod.string().optional(),
+  location: zod.string().optional(),
+});
+
+export const UpdateProfileResponse = zod.object({
+  id: zod.number(),
+  displayName: zod.string(),
+  username: zod.string(),
+  bio: zod.string(),
+  avatarUrl: zod.string().optional(),
+  coverUrl: zod.string().optional(),
+  location: zod.string().optional(),
+  subscriberCount: zod.number(),
+  totalPhotos: zod.number(),
+  totalVideos: zod.number(),
+  joinedDate: zod.string(),
+});
+
+/**
  * @summary List all categories
  */
 export const ListCategoriesResponseItem = zod.object({
@@ -69,14 +95,9 @@ export const ListContentResponseItem = zod.object({
 export const ListContentResponse = zod.array(ListContentResponseItem);
 
 /**
- * @summary Get a single content item
+ * @summary Create a new content item (creator only)
  */
-export const GetContentParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const GetContentResponse = zod.object({
-  id: zod.number(),
+export const CreateContentBody = zod.object({
   title: zod.string(),
   description: zod.string().optional(),
   type: zod.enum(["photo", "video", "bundle"]),
@@ -85,10 +106,6 @@ export const GetContentResponse = zod.object({
   isLocked: zod.boolean(),
   isFeatured: zod.boolean(),
   categoryId: zod.number().optional(),
-  categoryName: zod.string().optional(),
-  likeCount: zod.number(),
-  commentCount: zod.number(),
-  createdAt: zod.string(),
   tags: zod.array(zod.string()).optional(),
 });
 
@@ -116,6 +133,78 @@ export const GetFeaturedContentResponse = zod.array(
 );
 
 /**
+ * @summary Get a single content item
+ */
+export const GetContentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetContentResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().optional(),
+  type: zod.enum(["photo", "video", "bundle"]),
+  price: zod.number(),
+  previewUrl: zod.string(),
+  isLocked: zod.boolean(),
+  isFeatured: zod.boolean(),
+  categoryId: zod.number().optional(),
+  categoryName: zod.string().optional(),
+  likeCount: zod.number(),
+  commentCount: zod.number(),
+  createdAt: zod.string(),
+  tags: zod.array(zod.string()).optional(),
+});
+
+/**
+ * @summary Update a content item (creator only)
+ */
+export const UpdateContentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateContentBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  type: zod.enum(["photo", "video", "bundle"]).optional(),
+  price: zod.number().optional(),
+  previewUrl: zod.string().optional(),
+  isLocked: zod.boolean().optional(),
+  isFeatured: zod.boolean().optional(),
+  categoryId: zod.number().optional(),
+  tags: zod.array(zod.string()).optional(),
+});
+
+export const UpdateContentResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().optional(),
+  type: zod.enum(["photo", "video", "bundle"]),
+  price: zod.number(),
+  previewUrl: zod.string(),
+  isLocked: zod.boolean(),
+  isFeatured: zod.boolean(),
+  categoryId: zod.number().optional(),
+  categoryName: zod.string().optional(),
+  likeCount: zod.number(),
+  commentCount: zod.number(),
+  createdAt: zod.string(),
+  tags: zod.array(zod.string()).optional(),
+});
+
+/**
+ * @summary Delete a content item (creator only)
+ */
+export const DeleteContentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteContentResponse = zod.object({
+  success: zod.boolean(),
+  id: zod.number(),
+});
+
+/**
  * @summary Get site statistics
  */
 export const GetSiteStatsResponse = zod.object({
@@ -127,6 +216,20 @@ export const GetSiteStatsResponse = zod.object({
 });
 
 /**
+ * @summary List all purchases (creator only)
+ */
+export const ListPurchasesResponseItem = zod.object({
+  id: zod.number(),
+  contentId: zod.number(),
+  contentTitle: zod.string(),
+  customerEmail: zod.string(),
+  amount: zod.number(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListPurchasesResponse = zod.array(ListPurchasesResponseItem);
+
+/**
  * @summary Create a new purchase
  */
 export const CreatePurchaseBody = zod.object({
@@ -134,4 +237,16 @@ export const CreatePurchaseBody = zod.object({
   customerEmail: zod.string(),
   customerName: zod.string(),
   paymentMethod: zod.string(),
+});
+
+/**
+ * @summary Verify creator password
+ */
+export const VerifyCreatorBody = zod.object({
+  password: zod.string(),
+});
+
+export const VerifyCreatorResponse = zod.object({
+  success: zod.boolean(),
+  token: zod.string(),
 });

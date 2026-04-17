@@ -17,6 +17,8 @@ tags:
     description: Purchase operations
   - name: profile
     description: Creator profile
+  - name: creator
+    description: Creator admin operations
 paths:
   /healthz:
     get:
@@ -39,6 +41,23 @@ paths:
       responses:
         "200":
           description: Creator profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+    put:
+      operationId: updateProfile
+      tags: [creator]
+      summary: Update creator profile (creator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Updated profile
           content:
             application/json:
               schema:
@@ -85,6 +104,38 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ContentItem"
+    post:
+      operationId: createContent
+      tags: [creator]
+      summary: Create a new content item (creator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContentBody"
+      responses:
+        "201":
+          description: Created content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+
+  /content/featured:
+    get:
+      operationId: getFeaturedContent
+      tags: [content]
+      summary: Get featured content items
+      responses:
+        "200":
+          description: Featured content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentItem"
 
   /content/{id}:
     get:
@@ -106,21 +157,48 @@ paths:
                 $ref: "#/components/schemas/ContentItem"
         "404":
           description: Not found
-
-  /content/featured:
-    get:
-      operationId: getFeaturedContent
-      tags: [content]
-      summary: Get featured content items
+    put:
+      operationId: updateContent
+      tags: [creator]
+      summary: Update a content item (creator only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContentBody"
       responses:
         "200":
-          description: Featured content
+          description: Updated content
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ContentItem"
+                $ref: "#/components/schemas/ContentItem"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteContent
+      tags: [creator]
+      summary: Delete a content item (creator only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
 
   /stats:
     get:
@@ -136,6 +214,19 @@ paths:
                 $ref: "#/components/schemas/SiteStats"
 
   /purchases:
+    get:
+      operationId: listPurchases
+      tags: [creator]
+      summary: List all purchases (creator only)
+      responses:
+        "200":
+          description: List of purchases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Purchase"
     post:
       operationId: createPurchase
       tags: [purchases]
@@ -155,6 +246,27 @@ paths:
                 $ref: "#/components/schemas/Purchase"
         "400":
           description: Invalid request
+
+  /creator/verify:
+    post:
+      operationId: verifyCreator
+      tags: [creator]
+      summary: Verify creator password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyCreatorBody"
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyCreatorResult"
+        "401":
+          description: Unauthorized
 
 components:
   schemas:
@@ -191,6 +303,22 @@ components:
         joinedDate:
           type: string
       required: [id, displayName, username, bio, subscriberCount, totalPhotos, totalVideos, joinedDate]
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        displayName:
+          type: string
+        username:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+        coverUrl:
+          type: string
+        location:
+          type: string
 
     Category:
       type: object
@@ -241,6 +369,66 @@ components:
             type: string
       required: [id, title, type, price, previewUrl, isLocked, isFeatured, likeCount, commentCount, createdAt]
 
+    CreateContentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [photo, video, bundle]
+        price:
+          type: number
+        previewUrl:
+          type: string
+        isLocked:
+          type: boolean
+        isFeatured:
+          type: boolean
+        categoryId:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+      required: [title, type, price, previewUrl, isLocked, isFeatured]
+
+    UpdateContentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [photo, video, bundle]
+        price:
+          type: number
+        previewUrl:
+          type: string
+        isLocked:
+          type: boolean
+        isFeatured:
+          type: boolean
+        categoryId:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+
+    DeleteResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        id:
+          type: integer
+      required: [success, id]
+
     SiteStats:
       type: object
       properties:
@@ -287,3 +475,19 @@ components:
         createdAt:
           type: string
       required: [id, contentId, contentTitle, customerEmail, amount, status, createdAt]
+
+    VerifyCreatorBody:
+      type: object
+      properties:
+        password:
+          type: string
+      required: [password]
+
+    VerifyCreatorResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+      required: [success, token]

@@ -21,7 +21,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ### cristina-site (React + Vite)
 - **Preview path**: `/`
 - **Description**: Cristina Lucero personal creator platform — a private membership/content site inspired by OnlyFans but fully independent. Features dark mode with burgundy/plum accents.
-- **Pages**: Home (profile + content grid), Content Detail (/content/:id), Checkout (/checkout)
+- **Public pages**: Home (profile + content grid), Content Detail (/content/:id), Checkout (/checkout)
+- **Creator pages**: /creator/login, /creator/dashboard, /creator/content, /creator/profile, /creator/purchases
+- **Creator password**: Set via CREATOR_PASSWORD env var (default: `cristina2024`)
 
 ### api-server (Express)
 - **Preview path**: `/api`

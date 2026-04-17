@@ -4,6 +4,7 @@ import profileRouter from "./profile";
 import categoriesRouter from "./categories";
 import contentRouter from "./content";
 import purchasesRouter from "./purchases";
+import creatorRouter from "./creator";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(profileRouter);
 router.use(categoriesRouter);
 router.use(contentRouter);
 router.use(purchasesRouter);
+router.use(creatorRouter);
 
 export default router;

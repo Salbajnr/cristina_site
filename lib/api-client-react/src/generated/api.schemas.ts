@@ -23,6 +23,15 @@ export interface Profile {
   joinedDate: string;
 }
 
+export interface UpdateProfileBody {
+  displayName?: string;
+  username?: string;
+  bio?: string;
+  avatarUrl?: string;
+  coverUrl?: string;
+  location?: string;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -56,6 +65,53 @@ export interface ContentItem {
   tags?: string[];
 }
 
+export type CreateContentBodyType =
+  (typeof CreateContentBodyType)[keyof typeof CreateContentBodyType];
+
+export const CreateContentBodyType = {
+  photo: "photo",
+  video: "video",
+  bundle: "bundle",
+} as const;
+
+export interface CreateContentBody {
+  title: string;
+  description?: string;
+  type: CreateContentBodyType;
+  price: number;
+  previewUrl: string;
+  isLocked: boolean;
+  isFeatured: boolean;
+  categoryId?: number;
+  tags?: string[];
+}
+
+export type UpdateContentBodyType =
+  (typeof UpdateContentBodyType)[keyof typeof UpdateContentBodyType];
+
+export const UpdateContentBodyType = {
+  photo: "photo",
+  video: "video",
+  bundle: "bundle",
+} as const;
+
+export interface UpdateContentBody {
+  title?: string;
+  description?: string;
+  type?: UpdateContentBodyType;
+  price?: number;
+  previewUrl?: string;
+  isLocked?: boolean;
+  isFeatured?: boolean;
+  categoryId?: number;
+  tags?: string[];
+}
+
+export interface DeleteResult {
+  success: boolean;
+  id: number;
+}
+
 export interface SiteStats {
   totalContent: number;
   totalPhotos: number;
@@ -79,6 +135,15 @@ export interface Purchase {
   amount: number;
   status: string;
   createdAt: string;
+}
+
+export interface VerifyCreatorBody {
+  password: string;
+}
+
+export interface VerifyCreatorResult {
+  success: boolean;
+  token: string;
 }
 
 export type ListContentParams = {

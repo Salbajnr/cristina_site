@@ -19,12 +19,18 @@ import type {
 import type {
   Category,
   ContentItem,
+  CreateContentBody,
   CreatePurchaseBody,
+  DeleteResult,
   HealthStatus,
   ListContentParams,
   Profile,
   Purchase,
   SiteStats,
+  UpdateContentBody,
+  UpdateProfileBody,
+  VerifyCreatorBody,
+  VerifyCreatorResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -183,6 +189,92 @@ export function useGetProfile<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update creator profile (creator only)
+ */
+export const getUpdateProfileUrl = () => {
+  return `/api/profile`;
+};
+
+export const updateProfile = async (
+  updateProfileBody: UpdateProfileBody,
+  options?: RequestInit,
+): Promise<Profile> => {
+  return customFetch<Profile>(getUpdateProfileUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProfileBody),
+  });
+};
+
+export const getUpdateProfileMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProfile>>,
+    TError,
+    { data: BodyType<UpdateProfileBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProfile>>,
+  TError,
+  { data: BodyType<UpdateProfileBody> },
+  TContext
+> => {
+  const mutationKey = ["updateProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProfile>>,
+    { data: BodyType<UpdateProfileBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProfile>>
+>;
+export type UpdateProfileMutationBody = BodyType<UpdateProfileBody>;
+export type UpdateProfileMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update creator profile (creator only)
+ */
+export const useUpdateProfile = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProfile>>,
+    TError,
+    { data: BodyType<UpdateProfileBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProfile>>,
+  TError,
+  { data: BodyType<UpdateProfileBody> },
+  TContext
+> => {
+  return useMutation(getUpdateProfileMutationOptions(options));
+};
 
 /**
  * @summary List all categories
@@ -354,6 +446,167 @@ export function useListContent<
 }
 
 /**
+ * @summary Create a new content item (creator only)
+ */
+export const getCreateContentUrl = () => {
+  return `/api/content`;
+};
+
+export const createContent = async (
+  createContentBody: CreateContentBody,
+  options?: RequestInit,
+): Promise<ContentItem> => {
+  return customFetch<ContentItem>(getCreateContentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createContentBody),
+  });
+};
+
+export const getCreateContentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createContent>>,
+    TError,
+    { data: BodyType<CreateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createContent>>,
+  TError,
+  { data: BodyType<CreateContentBody> },
+  TContext
+> => {
+  const mutationKey = ["createContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createContent>>,
+    { data: BodyType<CreateContentBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createContent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createContent>>
+>;
+export type CreateContentMutationBody = BodyType<CreateContentBody>;
+export type CreateContentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new content item (creator only)
+ */
+export const useCreateContent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createContent>>,
+    TError,
+    { data: BodyType<CreateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createContent>>,
+  TError,
+  { data: BodyType<CreateContentBody> },
+  TContext
+> => {
+  return useMutation(getCreateContentMutationOptions(options));
+};
+
+/**
+ * @summary Get featured content items
+ */
+export const getGetFeaturedContentUrl = () => {
+  return `/api/content/featured`;
+};
+
+export const getFeaturedContent = async (
+  options?: RequestInit,
+): Promise<ContentItem[]> => {
+  return customFetch<ContentItem[]>(getGetFeaturedContentUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFeaturedContentQueryKey = () => {
+  return [`/api/content/featured`] as const;
+};
+
+export const getGetFeaturedContentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFeaturedContent>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFeaturedContent>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFeaturedContentQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFeaturedContent>>
+  > = ({ signal }) => getFeaturedContent({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFeaturedContent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFeaturedContentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFeaturedContent>>
+>;
+export type GetFeaturedContentQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get featured content items
+ */
+
+export function useGetFeaturedContent<
+  TData = Awaited<ReturnType<typeof getFeaturedContent>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFeaturedContent>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFeaturedContentQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Get a single content item
  */
 export const getGetContentUrl = (id: number) => {
@@ -441,79 +694,175 @@ export function useGetContent<
 }
 
 /**
- * @summary Get featured content items
+ * @summary Update a content item (creator only)
  */
-export const getGetFeaturedContentUrl = () => {
-  return `/api/content/featured`;
+export const getUpdateContentUrl = (id: number) => {
+  return `/api/content/${id}`;
 };
 
-export const getFeaturedContent = async (
+export const updateContent = async (
+  id: number,
+  updateContentBody: UpdateContentBody,
   options?: RequestInit,
-): Promise<ContentItem[]> => {
-  return customFetch<ContentItem[]>(getGetFeaturedContentUrl(), {
+): Promise<ContentItem> => {
+  return customFetch<ContentItem>(getUpdateContentUrl(id), {
     ...options,
-    method: "GET",
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateContentBody),
   });
 };
 
-export const getGetFeaturedContentQueryKey = () => {
-  return [`/api/content/featured`] as const;
-};
-
-export const getGetFeaturedContentQueryOptions = <
-  TData = Awaited<ReturnType<typeof getFeaturedContent>>,
-  TError = ErrorType<unknown>,
+export const getUpdateContentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
 >(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getFeaturedContent>>,
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateContent>>,
     TError,
-    TData
+    { id: number; data: BodyType<UpdateContentBody> },
+    TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateContent>>,
+  TError,
+  { id: number; data: BodyType<UpdateContentBody> },
+  TContext
+> => {
+  const mutationKey = ["updateContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-  const queryKey = queryOptions?.queryKey ?? getGetFeaturedContentQueryKey();
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateContent>>,
+    { id: number; data: BodyType<UpdateContentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getFeaturedContent>>
-  > = ({ signal }) => getFeaturedContent({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getFeaturedContent>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetFeaturedContentQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getFeaturedContent>>
->;
-export type GetFeaturedContentQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get featured content items
- */
-
-export function useGetFeaturedContent<
-  TData = Awaited<ReturnType<typeof getFeaturedContent>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getFeaturedContent>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetFeaturedContentQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
+    return updateContent(id, data, requestOptions);
   };
 
-  return { ...query, queryKey: queryOptions.queryKey };
-}
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateContent>>
+>;
+export type UpdateContentMutationBody = BodyType<UpdateContentBody>;
+export type UpdateContentMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a content item (creator only)
+ */
+export const useUpdateContent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateContent>>,
+    TError,
+    { id: number; data: BodyType<UpdateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateContent>>,
+  TError,
+  { id: number; data: BodyType<UpdateContentBody> },
+  TContext
+> => {
+  return useMutation(getUpdateContentMutationOptions(options));
+};
+
+/**
+ * @summary Delete a content item (creator only)
+ */
+export const getDeleteContentUrl = (id: number) => {
+  return `/api/content/${id}`;
+};
+
+export const deleteContent = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeleteResult> => {
+  return customFetch<DeleteResult>(getDeleteContentUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteContentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteContent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteContent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteContent>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteContent(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteContent>>
+>;
+
+export type DeleteContentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a content item (creator only)
+ */
+export const useDeleteContent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteContent>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteContent>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteContentMutationOptions(options));
+};
 
 /**
  * @summary Get site statistics
@@ -582,6 +931,81 @@ export function useGetSiteStats<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetSiteStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all purchases (creator only)
+ */
+export const getListPurchasesUrl = () => {
+  return `/api/purchases`;
+};
+
+export const listPurchases = async (
+  options?: RequestInit,
+): Promise<Purchase[]> => {
+  return customFetch<Purchase[]>(getListPurchasesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPurchasesQueryKey = () => {
+  return [`/api/purchases`] as const;
+};
+
+export const getListPurchasesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPurchases>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPurchases>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPurchasesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPurchases>>> = ({
+    signal,
+  }) => listPurchases({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPurchases>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPurchasesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPurchases>>
+>;
+export type ListPurchasesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all purchases (creator only)
+ */
+
+export function useListPurchases<
+  TData = Awaited<ReturnType<typeof listPurchases>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPurchases>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPurchasesQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -674,4 +1098,90 @@ export const useCreatePurchase = <
   TContext
 > => {
   return useMutation(getCreatePurchaseMutationOptions(options));
+};
+
+/**
+ * @summary Verify creator password
+ */
+export const getVerifyCreatorUrl = () => {
+  return `/api/creator/verify`;
+};
+
+export const verifyCreator = async (
+  verifyCreatorBody: VerifyCreatorBody,
+  options?: RequestInit,
+): Promise<VerifyCreatorResult> => {
+  return customFetch<VerifyCreatorResult>(getVerifyCreatorUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(verifyCreatorBody),
+  });
+};
+
+export const getVerifyCreatorMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyCreator>>,
+    TError,
+    { data: BodyType<VerifyCreatorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyCreator>>,
+  TError,
+  { data: BodyType<VerifyCreatorBody> },
+  TContext
+> => {
+  const mutationKey = ["verifyCreator"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyCreator>>,
+    { data: BodyType<VerifyCreatorBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyCreator(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyCreatorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyCreator>>
+>;
+export type VerifyCreatorMutationBody = BodyType<VerifyCreatorBody>;
+export type VerifyCreatorMutationError = ErrorType<void>;
+
+/**
+ * @summary Verify creator password
+ */
+export const useVerifyCreator = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyCreator>>,
+    TError,
+    { data: BodyType<VerifyCreatorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyCreator>>,
+  TError,
+  { data: BodyType<VerifyCreatorBody> },
+  TContext
+> => {
+  return useMutation(getVerifyCreatorMutationOptions(options));
 };
