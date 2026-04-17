@@ -1,0 +1,50 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "hddu9lU8YvX_Aq2nUQlFx"
+uri = "file://artifacts/cristina-site/public/cover.png"
+type = "image"
+title = "Moody velvet texture cover image"
+
+[[generated]]
+id = "7HID7f-D0NbO6qJTYiH7Z"
+uri = "file://artifacts/cristina-site/public/avatar.png"
+type = "image"
+title = "Sensual moody portrait avatar"
+
+[[generated]]
+id = "9dOoRAbCOkoJsPC7rpPY2"
+uri = "file://artifacts/cristina-site/public/preview-1.png"
+type = "image"
+title = "Blurred artistic content preview"
+
+[[generated]]
+id = "eAAhrA7nAZuuEyvzVei52"
+uri = "file://artifacts/cristina-site/public/preview-2.png"
+type = "image"
+title = "Blurred artistic content preview"
+
+[[generated]]
+id = "zxeGqqYuiuDh8JSf4yk7K"
+uri = "file://artifacts/cristina-site/public/preview-3.png"
+type = "image"
+title = "Blurred artistic content preview"
+
+[[generated]]
+id = "1P7HBdAPDKAJzXD-7SiXT"
+uri = "file://artifacts/cristina-site/public/preview-4.png"
+type = "image"
+title = "Blurred artistic content preview"
+
+[[generated]]
+id = "TloVpE4YXyuPHj4LYLyjv"
+uri = "file://artifacts/cristina-site/public/preview-5.png"
+type = "image"
+title = "Blurred artistic content preview"
+
+[[generated]]
+id = "1fJKVj_6upzRynU1fOk99"
+uri = "file://artifacts/cristina-site/public/preview-6.png"
+type = "image"
+title = "Blurred artistic content preview"
