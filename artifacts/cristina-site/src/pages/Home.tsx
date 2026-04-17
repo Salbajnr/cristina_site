@@ -5,12 +5,11 @@ import { ContentCard } from "@/components/content/ContentCard";
 import { 
   useGetProfile, 
   useGetSiteStats, 
-  useListContent, 
-  useListCategories 
+  useListContent
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Video, Grid, Lock, MapPin, Calendar, Heart, Share } from "lucide-react";
 import { formatNumber, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,17 +18,18 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("all");
   
   const { data: profile, isLoading: isProfileLoading } = useGetProfile();
-  const { data: stats, isLoading: isStatsLoading } = useGetSiteStats();
+  const { data: stats } = useGetSiteStats();
   
-  const categoryId = activeTab !== "all" && activeTab !== "photos" && activeTab !== "videos" ? parseInt(activeTab) : undefined;
-  const type = activeTab === "photos" ? "photo" : activeTab === "videos" ? "video" : undefined;
-  
+  const typeMap: Record<string, "photo" | "video" | "bundle"> = {
+    photos: "photo",
+    videos: "video",
+    bundles: "bundle",
+  };
+  const type = typeMap[activeTab];
+
   const { data: contentItems, isLoading: isContentLoading } = useListContent({ 
-    categoryId, 
-    type: type as any 
+    type: type as any
   });
-  
-  const { data: categories } = useListCategories();
 
   return (
     <div className="min-h-screen bg-background flex justify-center selection:bg-primary/30">
@@ -144,15 +144,12 @@ export default function Home() {
               >
                 <Video className="w-4 h-4 mr-2" /> Videos
               </TabsTrigger>
-              {categories?.map(cat => (
-                <TabsTrigger 
-                  key={cat.id}
-                  value={cat.id.toString()} 
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                >
-                  {cat.name}
-                </TabsTrigger>
-              ))}
+              <TabsTrigger 
+                value="bundles" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                Bundles
+              </TabsTrigger>
             </TabsList>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
