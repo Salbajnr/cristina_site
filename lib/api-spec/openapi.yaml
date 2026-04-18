@@ -21,6 +21,8 @@ tags:
     description: Creator admin operations
   - name: inquiries
     description: Visitor enquiries
+  - name: posts
+    description: Free public posts and comments
 paths:
   /healthz:
     get:
@@ -269,6 +271,122 @@ paths:
                 $ref: "#/components/schemas/VerifyCreatorResult"
         "401":
           description: Unauthorized
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List all free posts
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+  /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get a single post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  /posts/{id}/comments:
+    get:
+      operationId: listComments
+      tags: [posts]
+      summary: List comments for a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: createComment
+      tags: [posts]
+      summary: Add a comment to a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentBody"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+  /creator/posts:
+    post:
+      operationId: createPost
+      tags: [creator]
+      summary: Create a new free post (creator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostBody"
+      responses:
+        "201":
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  /creator/posts/{id}:
+    delete:
+      operationId: deletePost
+      tags: [creator]
+      summary: Delete a post (creator only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
 
   /inquiries:
     post:
@@ -580,3 +698,59 @@ components:
         createdAt:
           type: string
       required: [id, name, email, message, isRead, createdAt]
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [text, photo, video]
+        title:
+          type: string
+        body:
+          type: string
+        mediaUrl:
+          type: string
+        createdAt:
+          type: string
+      required: [id, type, body, createdAt]
+
+    CreatePostBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [text, photo, video]
+        title:
+          type: string
+        body:
+          type: string
+        mediaUrl:
+          type: string
+      required: [body]
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        postId:
+          type: integer
+        authorName:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+      required: [id, postId, authorName, body, createdAt]
+
+    CreateCommentBody:
+      type: object
+      properties:
+        authorName:
+          type: string
+        body:
+          type: string
+      required: [authorName, body]

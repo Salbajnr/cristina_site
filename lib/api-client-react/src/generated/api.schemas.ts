@@ -163,6 +163,52 @@ export interface Inquiry {
   createdAt: string;
 }
 
+export type PostType = (typeof PostType)[keyof typeof PostType];
+
+export const PostType = {
+  text: "text",
+  photo: "photo",
+  video: "video",
+} as const;
+
+export interface Post {
+  id: number;
+  type: PostType;
+  title?: string;
+  body: string;
+  mediaUrl?: string;
+  createdAt: string;
+}
+
+export type CreatePostBodyType =
+  (typeof CreatePostBodyType)[keyof typeof CreatePostBodyType];
+
+export const CreatePostBodyType = {
+  text: "text",
+  photo: "photo",
+  video: "video",
+} as const;
+
+export interface CreatePostBody {
+  type?: CreatePostBodyType;
+  title?: string;
+  body: string;
+  mediaUrl?: string;
+}
+
+export interface Comment {
+  id: number;
+  postId: number;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface CreateCommentBody {
+  authorName: string;
+  body: string;
+}
+
 export type ListContentParams = {
   categoryId?: number;
   type?: ListContentType;

@@ -11,7 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  MessageSquare
+  MessageSquare,
+  Rss
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -43,6 +44,7 @@ export default function CreatorLayout({ children }: CreatorLayoutProps) {
   const navItems = [
     { href: "/creator/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/creator/content", label: "Content", icon: ImageIcon },
+    { href: "/creator/posts", label: "Free Feed", icon: Rss },
     { href: "/creator/purchases", label: "Purchases", icon: CreditCard },
     { href: "/creator/inquiries", label: "Enquiries", icon: MessageSquare },
     { href: "/creator/profile", label: "Profile", icon: User },

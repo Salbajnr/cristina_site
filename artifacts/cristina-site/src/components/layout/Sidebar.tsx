@@ -7,7 +7,8 @@ import {
   Heart, 
   Bell, 
   Settings, 
-  MoreHorizontal
+  MoreHorizontal,
+  Rss
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetProfile } from "@workspace/api-client-react";
@@ -18,6 +19,7 @@ export function Sidebar() {
 
   const navItems = [
     { icon: Home, label: "Home", href: "/" },
+    { icon: Rss, label: "Free Feed", href: "/feed" },
     { icon: Search, label: "Explore", href: "/search" },
     { icon: MessageCircle, label: "Messages", href: "/messages" },
     { icon: Bookmark, label: "Bookmarks", href: "/bookmarks" },

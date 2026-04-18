@@ -6,6 +6,7 @@ import contentRouter from "./content";
 import purchasesRouter from "./purchases";
 import creatorRouter from "./creator";
 import inquiriesRouter from "./inquiries";
+import postsRouter from "./posts";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(contentRouter);
 router.use(purchasesRouter);
 router.use(creatorRouter);
 router.use(inquiriesRouter);
+router.use(postsRouter);
 
 export default router;

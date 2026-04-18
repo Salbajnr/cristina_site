@@ -252,6 +252,85 @@ export const VerifyCreatorResponse = zod.object({
 });
 
 /**
+ * @summary List all free posts
+ */
+export const ListPostsResponseItem = zod.object({
+  id: zod.number(),
+  type: zod.enum(["text", "photo", "video"]),
+  title: zod.string().optional(),
+  body: zod.string(),
+  mediaUrl: zod.string().optional(),
+  createdAt: zod.string(),
+});
+export const ListPostsResponse = zod.array(ListPostsResponseItem);
+
+/**
+ * @summary Get a single post
+ */
+export const GetPostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPostResponse = zod.object({
+  id: zod.number(),
+  type: zod.enum(["text", "photo", "video"]),
+  title: zod.string().optional(),
+  body: zod.string(),
+  mediaUrl: zod.string().optional(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary List comments for a post
+ */
+export const ListCommentsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListCommentsResponseItem = zod.object({
+  id: zod.number(),
+  postId: zod.number(),
+  authorName: zod.string(),
+  body: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListCommentsResponse = zod.array(ListCommentsResponseItem);
+
+/**
+ * @summary Add a comment to a post
+ */
+export const CreateCommentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateCommentBody = zod.object({
+  authorName: zod.string(),
+  body: zod.string(),
+});
+
+/**
+ * @summary Create a new free post (creator only)
+ */
+export const CreatePostBody = zod.object({
+  type: zod.enum(["text", "photo", "video"]).optional(),
+  title: zod.string().optional(),
+  body: zod.string(),
+  mediaUrl: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a post (creator only)
+ */
+export const DeletePostParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeletePostResponse = zod.object({
+  success: zod.boolean(),
+  id: zod.number(),
+});
+
+/**
  * @summary Submit a visitor enquiry
  */
 export const CreateInquiryBody = zod.object({
