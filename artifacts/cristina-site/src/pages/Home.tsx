@@ -100,7 +100,7 @@ export default function Home() {
                 )}
               </div>
 
-              <p className="text-foreground/90 leading-relaxed font-light text-lg">
+              <p className="text-foreground/90 leading-relaxed font-light text-lg whitespace-pre-line">
                 {profile?.bio || "Welcome to my private world. Exclusive photos, videos, and behind the scenes content you won't find anywhere else."}
               </p>
 
