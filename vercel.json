@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "env": {
+    "NODE_ENV": "production",
+    "PNPM_HOME": ".pnpm"
+  },
+  "buildCommand": "pnpm run build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "vite",
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs20.x",
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "/api"
+    }
+  ],
+  "routes": [
+    {
+      "src": "^/(?!api).*",
+      "dest": "/index.html",
+      "status": 200
+    }
+  ]
+}
+
