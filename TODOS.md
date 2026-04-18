@@ -1,5 +1,9 @@
 # Cristina Lucero Platform — Next Steps
 
+## Done
+- [x] Visitor enquiry form with WhatsApp, Telegram, and Email contact buttons on Messages page
+- [x] Enquiries inbox in creator admin panel with reply buttons and unread indicators
+
 ## Payments
 - [ ] Integrate Stripe so visitors can actually pay and unlock content
 - [ ] Send a purchase confirmation email with access link after payment

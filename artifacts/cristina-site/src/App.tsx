@@ -17,6 +17,7 @@ import CreatorDashboard from "@/pages/creator/Dashboard";
 import CreatorContent from "@/pages/creator/Content";
 import CreatorProfile from "@/pages/creator/Profile";
 import CreatorPurchases from "@/pages/creator/Purchases";
+import CreatorInquiries from "@/pages/creator/Inquiries";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/creator/content" component={CreatorContent} />
       <Route path="/creator/profile" component={CreatorProfile} />
       <Route path="/creator/purchases" component={CreatorPurchases} />
+      <Route path="/creator/inquiries" component={CreatorInquiries} />
       
       <Route component={NotFound} />
     </Switch>

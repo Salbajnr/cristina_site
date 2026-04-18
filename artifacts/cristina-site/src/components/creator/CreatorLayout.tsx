@@ -10,7 +10,8 @@ import {
   Globe, 
   LogOut,
   Menu,
-  X
+  X,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -43,6 +44,7 @@ export default function CreatorLayout({ children }: CreatorLayoutProps) {
     { href: "/creator/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/creator/content", label: "Content", icon: ImageIcon },
     { href: "/creator/purchases", label: "Purchases", icon: CreditCard },
+    { href: "/creator/inquiries", label: "Enquiries", icon: MessageSquare },
     { href: "/creator/profile", label: "Profile", icon: User },
   ];
 

@@ -146,6 +146,23 @@ export interface VerifyCreatorResult {
   token: string;
 }
 
+export interface CreateInquiryBody {
+  name: string;
+  email: string;
+  whatsapp?: string;
+  message: string;
+}
+
+export interface Inquiry {
+  id: number;
+  name: string;
+  email: string;
+  whatsapp?: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export type ListContentParams = {
   categoryId?: number;
   type?: ListContentType;

@@ -250,3 +250,44 @@ export const VerifyCreatorResponse = zod.object({
   success: zod.boolean(),
   token: zod.string(),
 });
+
+/**
+ * @summary Submit a visitor enquiry
+ */
+export const CreateInquiryBody = zod.object({
+  name: zod.string(),
+  email: zod.string(),
+  whatsapp: zod.string().optional(),
+  message: zod.string(),
+});
+
+/**
+ * @summary List all visitor enquiries (creator only)
+ */
+export const ListInquiriesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  whatsapp: zod.string().optional(),
+  message: zod.string(),
+  isRead: zod.boolean(),
+  createdAt: zod.string(),
+});
+export const ListInquiriesResponse = zod.array(ListInquiriesResponseItem);
+
+/**
+ * @summary Mark an enquiry as read
+ */
+export const MarkInquiryReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkInquiryReadResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  whatsapp: zod.string().optional(),
+  message: zod.string(),
+  isRead: zod.boolean(),
+  createdAt: zod.string(),
+});

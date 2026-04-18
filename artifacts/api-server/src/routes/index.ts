@@ -5,6 +5,7 @@ import categoriesRouter from "./categories";
 import contentRouter from "./content";
 import purchasesRouter from "./purchases";
 import creatorRouter from "./creator";
+import inquiriesRouter from "./inquiries";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(categoriesRouter);
 router.use(contentRouter);
 router.use(purchasesRouter);
 router.use(creatorRouter);
+router.use(inquiriesRouter);
 
 export default router;

@@ -19,6 +19,8 @@ tags:
     description: Creator profile
   - name: creator
     description: Creator admin operations
+  - name: inquiries
+    description: Visitor enquiries
 paths:
   /healthz:
     get:
@@ -268,6 +270,61 @@ paths:
         "401":
           description: Unauthorized
 
+  /inquiries:
+    post:
+      operationId: createInquiry
+      tags: [inquiries]
+      summary: Submit a visitor enquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInquiryBody"
+      responses:
+        "201":
+          description: Enquiry submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+        "400":
+          description: Invalid request
+
+  /creator/inquiries:
+    get:
+      operationId: listInquiries
+      tags: [creator]
+      summary: List all visitor enquiries (creator only)
+      responses:
+        "200":
+          description: List of enquiries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Inquiry"
+
+  /creator/inquiries/{id}/read:
+    put:
+      operationId: markInquiryRead
+      tags: [creator]
+      summary: Mark an enquiry as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated enquiry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+
 components:
   schemas:
     HealthStatus:
@@ -491,3 +548,35 @@ components:
         token:
           type: string
       required: [success, token]
+
+    CreateInquiryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        whatsapp:
+          type: string
+        message:
+          type: string
+      required: [name, email, message]
+
+    Inquiry:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        whatsapp:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, name, email, message, isRead, createdAt]
