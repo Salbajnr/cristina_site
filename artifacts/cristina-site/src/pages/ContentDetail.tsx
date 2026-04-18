@@ -13,13 +13,13 @@ export default function ContentDetail() {
   const [, setLocation] = useLocation();
   
   const { data: content, isLoading, isError } = useGetContent(id, {
-    query: { enabled: !!id }
+    enabled: !!id
   });
 
   const { data: relatedContent } = useListContent({ 
     categoryId: content?.categoryId 
   }, {
-    query: { enabled: !!content?.categoryId }
+    enabled: !!content?.categoryId
   });
 
   if (isError) {
