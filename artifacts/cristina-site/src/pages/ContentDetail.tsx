@@ -12,15 +12,11 @@ export default function ContentDetail() {
   const id = parseInt(params.id || "0");
   const [, setLocation] = useLocation();
   
-  const { data: content, isLoading, isError } = useGetContent(id, {
-    enabled: !!id
-  });
+  const { data: content, isLoading, isError } = useGetContent(id);
 
-  const { data: relatedContent } = useListContent({ 
-    categoryId: content?.categoryId 
-  }, {
-    enabled: !!content?.categoryId
-  });
+  const { data: relatedContent } = useListContent(
+    content?.categoryId ? { categoryId: content?.categoryId } : undefined
+  );
 
   if (isError) {
     return (
