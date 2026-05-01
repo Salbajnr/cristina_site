@@ -4,13 +4,15 @@ import { z } from "zod/v4";
 
 export const purchasesTable = pgTable("purchases", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id"),
   contentId: integer("content_id").notNull(),
   contentTitle: text("content_title").notNull(),
   customerEmail: text("customer_email").notNull(),
   customerName: text("customer_name").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default("completed"),
+  status: text("status").notNull().default("pending"),
   paymentMethod: text("payment_method").notNull().default("card"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

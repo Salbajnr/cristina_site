@@ -9,6 +9,8 @@ export const inquiriesTable = pgTable("inquiries", {
   whatsapp: text("whatsapp"),
   message: text("message").notNull(),
   isRead: boolean("is_read").notNull().default(false),
+  replyMessage: text("reply_message"),
+  repliedAt: timestamp("replied_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

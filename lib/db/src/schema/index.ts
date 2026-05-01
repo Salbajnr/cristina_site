@@ -4,3 +4,4 @@ export * from "./content";
 export * from "./purchases";
 export * from "./inquiries";
 export * from "./posts";
+export * from "./users";

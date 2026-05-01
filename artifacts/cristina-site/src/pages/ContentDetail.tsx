@@ -1,5 +1,7 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useGetContent, useListContent } from "@workspace/api-client-react";
+import { useUserAuth } from "@/hooks/use-user-auth";
+import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,12 +13,34 @@ export default function ContentDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0");
   const [, setLocation] = useLocation();
+  const { getToken } = useUserAuth();
   
   const { data: content, isLoading, isError } = useGetContent(id);
 
   const { data: relatedContent } = useListContent(
     content?.categoryId ? { categoryId: content?.categoryId } : undefined
   );
+
+  // Check if user has purchased this content
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  const { data: userPurchases = [] } = useQuery({
+    queryKey: ["purchases"],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token) return [];
+
+      const res = await fetch(`${API_URL}/purchases`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!getToken(),
+  });
+
+  const hasPurchased = userPurchases.some((p: any) => p.contentId === id && p.status === "completed");
+  const isLocked = content?.isLocked && !hasPurchased;
 
   if (isError) {
     return (
@@ -29,7 +53,6 @@ export default function ContentDetail() {
     );
   }
 
-  const isLocked = content?.isLocked;
   const getPreviewImage = (id: number) => {
     if (!isLocked && content?.previewUrl) return content.previewUrl;
     const index = (id % 6) + 1;
@@ -80,7 +103,7 @@ export default function ContentDetail() {
                     This post is locked. Subscribe or purchase to reveal the full content.
                   </p>
                   
-                  <Link href="/checkout">
+                  <Link to={`/checkout?contentId=${content.id}`}>
                     <Button size="lg" className="rounded-full bg-primary hover:bg-primary/90 text-white font-semibold text-lg px-12 shadow-[0_0_20px_rgba(153,27,84,0.5)]">
                       Unlock for ${content.price.toFixed(2)}
                     </Button>
@@ -98,6 +121,91 @@ export default function ContentDetail() {
                 <button className="flex items-center gap-2 hover:text-primary transition-colors">
                   <MessageCircle className="w-6 h-6" /> <span className="font-medium">{content.commentCount}</span>
                 </button>
+              </div>
+              <button className="text-muted-foreground hover:text-foreground transition-colors">
+                <Share className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content Details */}
+            <div className="p-4 md:p-6 space-y-4">
+              <div className="flex justify-between items-start gap-4">
+                <h1 className="text-xl md:text-2xl font-serif font-bold text-foreground leading-snug">
+                  {content.title}
+                </h1>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {formatDate(content.createdAt)}
+                </span>
+              </div>
+
+              {content.description && (
+                <p className="text-foreground/90 font-light text-lg leading-relaxed whitespace-pre-wrap">
+                  {isLocked ? (
+                    <span className="blur-sm select-none">
+                      {content.description.padEnd(200, ' ').substring(0, 150)}...
+                    </span>
+                  ) : (
+                    content.description
+                  )}
+                </p>
+              )}
+
+              {content.tags && content.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-4">
+                  {content.tags.map(tag => (
+                    <span key={tag} className="text-xs text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </article>
+        ) : null}
+
+        {/* Related Content */}
+        {relatedContent && relatedContent.length > 1 && (
+          <div className="px-4 md:px-6 py-8 border-t border-border/50 mt-8">
+            <h3 className="font-serif text-xl font-medium text-foreground mb-6 flex items-center gap-2">
+              <Star className="w-5 h-5 text-secondary" /> More like this
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {relatedContent
+                .filter(item => item.id !== id)
+                .slice(0, 3)
+                .map(item => (
+                  <ContentCard key={item.id} content={item} />
+                ))
+              }
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function MoreHorizontalIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
+    </svg>
+  );
+}
+
               </div>
               <button className="text-muted-foreground hover:text-foreground transition-colors">
                 <Share className="w-5 h-5" />

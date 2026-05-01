@@ -26,9 +26,18 @@ app.use(
   }),
 );
 app.use(cors());
+
+// Stripe webhook needs raw body
+app.post(
+  "/api/purchases/webhook",
+  express.raw({ type: "application/json" })
+);
+
+// Regular JSON parsing for other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
 export default app;
+

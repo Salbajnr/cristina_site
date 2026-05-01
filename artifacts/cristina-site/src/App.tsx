@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import ContentDetail from "@/pages/ContentDetail";
 import Checkout from "@/pages/Checkout";
+import CheckoutSuccess from "@/pages/CheckoutSuccess";
 import Explore from "@/pages/Explore";
 import Messages from "@/pages/Messages";
 import Bookmarks from "@/pages/Bookmarks";
@@ -13,6 +14,8 @@ import Subscriptions from "@/pages/Subscriptions";
 import Notifications from "@/pages/Notifications";
 import Settings from "@/pages/Settings";
 import Feed from "@/pages/Feed";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import CreatorLogin from "@/pages/creator/Login";
 import CreatorDashboard from "@/pages/creator/Dashboard";
 import CreatorContent from "@/pages/creator/Content";
@@ -29,6 +32,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/content/:id" component={ContentDetail} />
       <Route path="/checkout" component={Checkout} />
+      <Route path="/checkout/success" component={CheckoutSuccess} />
       <Route path="/feed" component={Feed} />
       <Route path="/search" component={Explore} />
       <Route path="/messages" component={Messages} />
@@ -36,6 +40,8 @@ function Router() {
       <Route path="/subscriptions" component={Subscriptions} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/settings" component={Settings} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       
       {/* Creator Routes */}
       <Route path="/creator" component={CreatorLogin} />

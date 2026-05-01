@@ -41,7 +41,7 @@ export default function Home() {
           <div className="h-48 md:h-64 lg:h-80 w-full relative overflow-hidden bg-muted">
             {profile?.coverUrl || true ? (
               <img 
-                src={profile?.coverUrl || "/cover.png"} 
+                src={profile?.coverUrl || "/cover.jpg"} 
                 alt="Cover" 
                 className="w-full h-full object-cover object-center"
               />
@@ -65,7 +65,7 @@ export default function Home() {
         <div className="px-4 md:px-6 relative -top-16 md:-top-20 z-10">
           <div className="flex justify-between items-end mb-4">
             <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-background shadow-xl">
-              <AvatarImage src={profile?.avatarUrl || "/avatar.png"} className="object-cover" />
+              <AvatarImage src={profile?.avatarUrl || "/avatar.jpg"} className="object-cover" />
               <AvatarFallback className="text-4xl">CL</AvatarFallback>
             </Avatar>
             <div className="flex gap-2 lg:hidden">

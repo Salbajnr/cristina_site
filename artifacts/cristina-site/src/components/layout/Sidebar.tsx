@@ -67,7 +67,7 @@ export function Sidebar() {
       <div className="px-0 xl:px-6 w-full flex justify-center xl:justify-start">
         <button className="flex items-center gap-3 p-2 xl:p-3 rounded-full xl:rounded-xl hover:bg-white/5 transition-colors w-full">
           <Avatar className="w-10 h-10 border border-primary/30">
-            <AvatarImage src={profile?.avatarUrl || "/avatar.png"} className="object-cover" />
+            <AvatarImage src={profile?.avatarUrl || "/avatar.jpg"} className="object-cover" />
             <AvatarFallback>CL</AvatarFallback>
           </Avatar>
           <div className="hidden xl:flex flex-col items-start flex-1 overflow-hidden">

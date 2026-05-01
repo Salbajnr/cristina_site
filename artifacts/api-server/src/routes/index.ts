@@ -7,10 +7,12 @@ import purchasesRouter from "./purchases";
 import creatorRouter from "./creator";
 import inquiriesRouter from "./inquiries";
 import postsRouter from "./posts";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
 router.use(profileRouter);
 router.use(categoriesRouter);
 router.use(contentRouter);
@@ -20,3 +22,4 @@ router.use(inquiriesRouter);
 router.use(postsRouter);
 
 export default router;
+
