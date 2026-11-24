@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { setCreatorToken, isAuthenticated } from "@/lib/auth";
-import { useVerifyCreator } from "@workspace/api-client-react";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,42 +9,78 @@ import { Loader2, Lock } from "lucide-react";
 
 export default function CreatorLogin() {
   const [, setLocation] = useLocation();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
 
-  const verifyCreator = useVerifyCreator();
-
   useEffect(() => {
-    if (isAuthenticated()) {
-      setLocation("/creator/dashboard");
-    }
-  }, [setLocation]);
+    let active = true;
+    void supabase.auth.getSession().then(async ({ data, error }) => {
+      if (!active || error || !data.session) return;
+      const { data: creatorRole, error: roleError } = await supabase
+        .from("creator_roles")
+        .select("user_id")
+        .eq("user_id", data.session.user.id)
+        .maybeSingle();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!password) return;
-
-    verifyCreator.mutate({ data: { password } }, {
-      onSuccess: (result) => {
-        if (result.success && result.token) {
-          setCreatorToken(result.token);
-          setLocation("/creator/dashboard");
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Access Denied",
-            description: "Invalid password.",
-          });
-        }
-      },
-      onError: () => {
+      if (!active) return;
+      if (roleError) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "An error occurred while verifying your password.",
+          title: "Unable to verify creator access",
+          description: roleError.message,
         });
+      } else if (creatorRole) {
+        setLocation("/creator/dashboard");
       }
     });
+    return () => {
+      active = false;
+    };
+  }, [setLocation, toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || isPending) return;
+
+    setIsPending(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.session) {
+        toast({
+          variant: "destructive",
+          title: "Access denied",
+          description: error?.message ?? "Supabase did not create an authenticated session.",
+        });
+        return;
+      }
+
+      const { data: creatorRole, error: roleError } = await supabase
+        .from("creator_roles")
+        .select("user_id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      if (roleError || !creatorRole) {
+        toast({
+          variant: "destructive",
+          title: "Creator access required",
+          description: roleError?.message ?? "This account is not authorized as the creator.",
+        });
+        return;
+      }
+
+      setLocation("/creator/dashboard");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign-in failed",
+        description: error instanceof Error ? error.message : "Unable to authenticate this account.",
+      });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -62,27 +97,36 @@ export default function CreatorLogin() {
           </div>
           <div>
             <CardTitle className="text-2xl font-serif">Creator Access</CardTitle>
-            <CardDescription>Enter your password to access the dashboard</CardDescription>
+            <CardDescription>Sign in with your creator account to access the dashboard</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="text-center text-lg py-6"
+                autoComplete="username"
+                autoFocus
+              />
+              <Input
                 type="password"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="text-center text-lg py-6"
-                autoFocus
+                autoComplete="current-password"
               />
             </div>
             <Button 
               type="submit" 
               className="w-full py-6 text-lg" 
-              disabled={verifyCreator.isPending || !password}
+              disabled={isPending || !email || !password}
             >
-              {verifyCreator.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enter"}
+              {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign in"}
             </Button>
           </form>
         </CardContent>

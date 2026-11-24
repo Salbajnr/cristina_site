@@ -1,45 +1,112 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { CheckCircle2 } from "lucide-react";
+import { useLocation, useSearchParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useUserAuth } from "@/hooks/use-user-auth";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+interface CheckoutStatus {
+  status: "processing" | "complete";
+  type?: "content" | "subscription";
+  contentId?: number;
+  plan?: string;
+}
 
 export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
-  const [countdown, setCountdown] = useState(5);
+  const [params] = useSearchParams();
+  const { getToken } = useUserAuth();
+  const sessionId = params.get("session_id");
+  const token = getToken();
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
+  const { data: checkout, error, isLoading } = useQuery({
+    queryKey: ["checkout-session", sessionId],
+    enabled: Boolean(sessionId && token),
+    retry: false,
+    refetchInterval: (query) => {
+      if (query.state.error || query.state.data?.status === "complete") return false;
+      return 3_000;
+    },
+    queryFn: async () => {
+      const response = await fetch(
+        `${API_URL}/purchases/checkout-session/${encodeURIComponent(sessionId!)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error || "Unable to verify this payment.");
+      }
+      return (await response.json()) as CheckoutStatus;
+    },
+  });
 
-    if (countdown === 0) {
-      setLocation("/");
-    }
-
-    return () => clearInterval(timer);
-  }, [countdown, setLocation]);
+  const isComplete = checkout?.status === "complete";
+  const isMissingSession = !sessionId;
+  const destination =
+    checkout?.type === "content" && checkout.contentId
+      ? `/content/${checkout.contentId}`
+      : checkout?.type === "subscription"
+        ? "/subscriptions"
+        : "/";
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="animate-in zoom-in duration-500 flex flex-col items-center text-center space-y-6 max-w-md">
-        <div className="w-24 h-24 bg-primary/20 text-primary rounded-full flex items-center justify-center mb-4 animate-pulse">
-          <CheckCircle2 className="w-12 h-12" />
+      <div className="flex max-w-md flex-col items-center space-y-6 text-center">
+        <div
+          className={`flex h-24 w-24 items-center justify-center rounded-full ${
+            isComplete ? "bg-green-500/15 text-green-500" : "bg-primary/20 text-primary"
+          }`}
+        >
+          {isComplete ? (
+            <CheckCircle2 className="h-12 w-12" />
+          ) : isLoading || checkout?.status === "processing" ? (
+            <Loader2 className="h-12 w-12 animate-spin" />
+          ) : error || isMissingSession || !token ? (
+            <AlertCircle className="h-12 w-12" />
+          ) : (
+            <Clock className="h-12 w-12" />
+          )}
         </div>
-        <h1 className="font-serif text-3xl font-bold text-foreground">Payment Successful!</h1>
-        <p className="text-muted-foreground text-lg">
-          Thank you for your purchase. You now have exclusive access to all the content.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Check your email for a confirmation and access link.
-        </p>
-        <div className="p-4 bg-white/5 rounded-xl border border-white/10 w-full mt-8">
-          <p className="text-sm text-foreground/80">
-            Redirecting in {countdown} seconds...
+
+        <div>
+          <h1 className="font-serif text-3xl font-bold text-foreground">
+            {isComplete
+              ? "Payment verified"
+              : error || isMissingSession || !token
+                ? "Payment status unavailable"
+                : "Confirming your payment"}
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {isComplete
+              ? checkout.type === "subscription"
+                ? "Your membership is active and your exclusive access is ready."
+                : "Your content purchase is confirmed and access is ready."
+              : checkout?.status === "processing"
+                ? "Stripe received your payment. Access will appear as soon as the receipt is recorded."
+                : error instanceof Error
+                  ? error.message
+                  : isMissingSession
+                    ? "This page needs a checkout session to confirm your purchase."
+                    : !token
+                      ? "Sign in to verify the payment for your account."
+                      : "Waiting for Stripe to confirm the transaction."}
           </p>
         </div>
-        <Button onClick={() => setLocation("/")} className="mt-4">
-          Return to Home
-        </Button>
+
+        {isComplete && (
+          <Button onClick={() => setLocation(destination)}>
+            {checkout.type === "subscription" ? "View membership" : "Open purchased content"}
+          </Button>
+        )}
+        {!isComplete && (
+          <Button
+            variant="outline"
+            onClick={() => setLocation(token ? "/" : `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+          >
+            {token ? "Return to home" : "Sign in"}
+          </Button>
+        )}
       </div>
     </div>
   );

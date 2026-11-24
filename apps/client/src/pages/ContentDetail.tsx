@@ -1,28 +1,86 @@
+import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useGetContent, useListContent } from "@workspace/api-client-react";
 import { useUserAuth } from "@/hooks/use-user-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Lock, Heart, MessageCircle, Share, Star } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Lock, Heart, MessageCircle, Share, Star, Send } from "lucide-react";
 import { ContentCard } from "@/components/content/ContentCard";
 import { formatDate } from "@/lib/format";
+import { useLike } from "@/hooks/use-like";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ContentDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0");
   const [, setLocation] = useLocation();
   const { getToken } = useUserAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showComments, setShowComments] = useState(false);
+  const [commenterName, setCommenterName] = useState("");
+  const [commentBody, setCommentBody] = useState("");
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
   
-  const { data: content, isLoading, isError } = useGetContent(id);
+  const { data: content, isLoading, isError, queryKey: contentQueryKey } = useGetContent(id);
+  const {
+    data: comments,
+    isLoading: isLoadingComments,
+    isError: isCommentsError,
+  } = useQuery<Array<{ id: number; authorName: string; body: string; createdAt: string }>>({
+    queryKey: ["content-comments", id],
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/content/${id}/comments`);
+      if (!response.ok) throw new Error("Unable to load comments.");
+      return response.json();
+    },
+    enabled: showComments && id > 0,
+    refetchInterval: showComments ? 30_000 : false,
+  });
+  const addComment = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`${API_URL}/content/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorName: commenterName.trim(), body: commentBody.trim() }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error || "Unable to post your comment.");
+      }
+      return response.json();
+    },
+    onSuccess: async () => {
+      setCommentBody("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["content-comments", id] }),
+        queryClient.invalidateQueries({ queryKey: contentQueryKey }),
+      ]);
+      toast({ title: "Comment posted" });
+    },
+    onError: (error) => toast({
+      title: "Unable to post comment",
+      description: error instanceof Error ? error.message : "Please try again.",
+      variant: "destructive",
+    }),
+  });
+  const {
+    count: likeCount,
+    isLiked,
+    isLoading: isLoadingLikes,
+    isUpdating: isUpdatingLike,
+    toggleLike,
+  } = useLike("content", id, content?.likeCount ?? 0);
 
   const { data: relatedContent } = useListContent(
     content?.categoryId ? { categoryId: content?.categoryId } : undefined
   );
 
   // Check if user has purchased this content
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
   const { data: userPurchases = [] } = useQuery({
     queryKey: ["purchases"],
     queryFn: async () => {
@@ -39,8 +97,29 @@ export default function ContentDetail() {
     enabled: !!getToken(),
   });
 
+  const { data: activeSubscriptions = [] } = useQuery({
+    queryKey: ["subscriptions/me"],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token) return [];
+
+      const response = await fetch(`${API_URL}/subscriptions/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error("Unable to verify your subscription.");
+      }
+      return response.json() as Promise<Array<{ status: string }>>;
+    },
+    enabled: !!getToken(),
+    refetchInterval: 30_000,
+  });
+
   const hasPurchased = userPurchases.some((p: any) => p.contentId === id && p.status === "completed");
-  const isLocked = content?.isLocked && !hasPurchased;
+  const hasActiveSubscription = activeSubscriptions.some((subscription) =>
+    ["active", "trialing"].includes(subscription.status),
+  );
+  const isLocked = content?.isLocked && !hasPurchased && !hasActiveSubscription;
 
   if (isError) {
     return (
@@ -54,7 +133,7 @@ export default function ContentDetail() {
   }
 
   const getPreviewImage = (id: number) => {
-    if (!isLocked && content?.previewUrl) return content.previewUrl;
+    if (content?.previewUrl) return content.previewUrl;
     const index = (id % 6) + 1;
     return `/preview-${index}.png`;
   };
@@ -72,9 +151,7 @@ export default function ContentDetail() {
           <div className="font-serif font-medium truncate max-w-[200px] md:max-w-md">
             {content?.title || "Post"}
           </div>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <MoreHorizontalIcon className="w-5 h-5" />
-          </Button>
+          <span className="w-10" aria-hidden="true" />
         </div>
 
         {isLoading ? (
@@ -115,14 +192,47 @@ export default function ContentDetail() {
             {/* Actions Bar */}
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <div className="flex items-center gap-4 text-foreground">
-                <button className="flex items-center gap-2 hover:text-primary transition-colors">
-                  <Heart className="w-6 h-6" /> <span className="font-medium">{content.likeCount}</span>
+                <button
+                  type="button"
+                  onClick={toggleLike}
+                  disabled={isLoadingLikes || isUpdatingLike}
+                  aria-label={isLiked ? "Unlike content" : "Like content"}
+                  aria-pressed={isLiked}
+                  className={`flex items-center gap-2 transition-colors disabled:opacity-50 ${
+                    isLiked ? "text-primary" : "hover:text-primary"
+                  }`}
+                >
+                  <Heart className={`h-6 w-6 ${isLiked ? "fill-current" : ""}`} />
+                  <span className="font-medium">{likeCount}</span>
                 </button>
-                <button className="flex items-center gap-2 hover:text-primary transition-colors">
-                  <MessageCircle className="w-6 h-6" /> <span className="font-medium">{content.commentCount}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowComments((shown) => !shown)}
+                  aria-expanded={showComments}
+                  aria-label={showComments ? "Hide comments" : "Show comments"}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <MessageCircle className="w-6 h-6" />
+                  <span className="font-medium">{Math.max(content.commentCount, comments?.length ?? 0)}</span>
                 </button>
               </div>
-              <button className="text-muted-foreground hover:text-foreground transition-colors">
+              <button
+                type="button"
+                aria-label="Copy content link"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    toast({ title: "Link copied" });
+                  } catch {
+                    toast({
+                      title: "Unable to copy link",
+                      description: "Your browser did not allow access to the clipboard.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
                 <Share className="w-5 h-5" />
               </button>
             </div>
@@ -160,6 +270,65 @@ export default function ContentDetail() {
                 </div>
               )}
             </div>
+            {showComments && (
+              <section className="px-4 md:px-6 pb-6" aria-label="Comments">
+                <h2 className="font-serif text-lg font-medium mb-4">Comments</h2>
+                {isLoadingComments ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : isCommentsError ? (
+                  <p className="text-sm text-destructive">Comments could not be loaded. Please try again.</p>
+                ) : comments?.length ? (
+                  <div className="space-y-3 mb-4">
+                    {comments.map((comment) => (
+                      <article key={comment.id} className="rounded-xl bg-white/5 px-3 py-2">
+                        <div className="flex items-center justify-between gap-3 mb-1">
+                          <span className="text-sm font-semibold">{comment.authorName}</span>
+                          <span className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</span>
+                        </div>
+                        <p className="text-sm text-foreground/80 whitespace-pre-wrap">{comment.body}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mb-4">Be the first to comment.</p>
+                )}
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (commenterName.trim() && commentBody.trim()) addComment.mutate();
+                  }}
+                  className="space-y-2"
+                >
+                  <Input
+                    value={commenterName}
+                    onChange={(event) => setCommenterName(event.target.value)}
+                    maxLength={100}
+                    placeholder="Your name"
+                    aria-label="Your name"
+                  />
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={commentBody}
+                      onChange={(event) => setCommentBody(event.target.value)}
+                      maxLength={2000}
+                      rows={2}
+                      placeholder="Leave a comment..."
+                      aria-label="Leave a comment"
+                      className="resize-none flex-1"
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={addComment.isPending || !commenterName.trim() || !commentBody.trim()}
+                      aria-label="Post comment"
+                      className="self-end shrink-0"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </form>
+              </section>
+            )}
           </article>
         ) : null}
 
@@ -182,111 +351,5 @@ export default function ContentDetail() {
         )}
       </main>
     </div>
-  );
-}
-
-function MoreHorizontalIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-      <circle cx="5" cy="12" r="1" />
-    </svg>
-  );
-}
-
-              </div>
-              <button className="text-muted-foreground hover:text-foreground transition-colors">
-                <Share className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Content Details */}
-            <div className="p-4 md:p-6 space-y-4">
-              <div className="flex justify-between items-start gap-4">
-                <h1 className="text-xl md:text-2xl font-serif font-bold text-foreground leading-snug">
-                  {content.title}
-                </h1>
-                <span className="text-sm text-muted-foreground whitespace-nowrap">
-                  {formatDate(content.createdAt)}
-                </span>
-              </div>
-
-              {content.description && (
-                <p className="text-foreground/90 font-light text-lg leading-relaxed whitespace-pre-wrap">
-                  {isLocked ? (
-                    <span className="blur-sm select-none">
-                      {content.description.padEnd(200, ' ').substring(0, 150)}...
-                    </span>
-                  ) : (
-                    content.description
-                  )}
-                </p>
-              )}
-
-              {content.tags && content.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-4">
-                  {content.tags.map(tag => (
-                    <span key={tag} className="text-xs text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </article>
-        ) : null}
-
-        {/* Related Content */}
-        {relatedContent && relatedContent.length > 1 && (
-          <div className="px-4 md:px-6 py-8 border-t border-border/50 mt-8">
-            <h3 className="font-serif text-xl font-medium text-foreground mb-6 flex items-center gap-2">
-              <Star className="w-5 h-5 text-secondary" /> More like this
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {relatedContent
-                .filter(item => item.id !== id)
-                .slice(0, 3)
-                .map(item => (
-                  <ContentCard key={item.id} content={item} />
-                ))
-              }
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-function MoreHorizontalIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-      <circle cx="5" cy="12" r="1" />
-    </svg>
   );
 }

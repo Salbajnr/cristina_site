@@ -133,6 +133,40 @@ export const GetFeaturedContentResponse = zod.array(
 );
 
 /**
+ * @summary List comments for content
+ */
+export const ListContentCommentsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListContentCommentsResponseItem = zod.object({
+  id: zod.number(),
+  contentId: zod.number(),
+  authorName: zod.string(),
+  body: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListContentCommentsResponse = zod.array(
+  ListContentCommentsResponseItem,
+);
+
+/**
+ * @summary Add a comment to content
+ */
+export const CreateContentCommentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createContentCommentBodyAuthorNameMax = 100;
+
+export const createContentCommentBodyBodyMax = 2000;
+
+export const CreateContentCommentBody = zod.object({
+  authorName: zod.string().max(createContentCommentBodyAuthorNameMax),
+  body: zod.string().max(createContentCommentBodyBodyMax),
+});
+
+/**
  * @summary Get a single content item
  */
 export const GetContentParams = zod.object({
@@ -240,15 +274,29 @@ export const CreatePurchaseBody = zod.object({
 });
 
 /**
- * @summary Verify creator password
+ * @summary Start a one-time content checkout (signed-in user required)
  */
-export const VerifyCreatorBody = zod.object({
-  password: zod.string(),
+export const CreateContentCheckoutSessionBody = zod.object({
+  contentId: zod.number(),
 });
 
-export const VerifyCreatorResponse = zod.object({
-  success: zod.boolean(),
-  token: zod.string(),
+export const CreateContentCheckoutSessionResponse = zod.object({
+  url: zod.string(),
+  sessionId: zod.string().optional(),
+});
+
+/**
+ * @summary Verify checkout completion for the signed-in user
+ */
+export const GetCheckoutSessionStatusParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetCheckoutSessionStatusResponse = zod.object({
+  status: zod.enum(["processing", "complete"]),
+  type: zod.enum(["content", "subscription"]).optional(),
+  contentId: zod.number().optional(),
+  plan: zod.string().optional(),
 });
 
 /**
@@ -328,6 +376,68 @@ export const DeletePostParams = zod.object({
 export const DeletePostResponse = zod.object({
   success: zod.boolean(),
   id: zod.number(),
+});
+
+/**
+ * @summary Get the like count and current user's state
+ */
+export const GetLikeStateParams = zod.object({
+  type: zod.enum(["content", "post"]),
+  id: zod.coerce.number(),
+});
+
+export const GetLikeStateResponse = zod.object({
+  count: zod.number(),
+  isLiked: zod.boolean(),
+});
+
+/**
+ * @summary Like or unlike content (signed-in user required)
+ */
+export const SetLikeStateParams = zod.object({
+  type: zod.enum(["content", "post"]),
+  id: zod.coerce.number(),
+});
+
+export const SetLikeStateBody = zod.object({
+  liked: zod.boolean(),
+});
+
+export const SetLikeStateResponse = zod.object({
+  count: zod.number(),
+  isLiked: zod.boolean(),
+});
+
+/**
+ * @summary List the current user's active subscriptions
+ */
+export const GetMySubscriptionsResponseItem = zod.object({
+  plan: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
+export const GetMySubscriptionsResponse = zod.array(
+  GetMySubscriptionsResponseItem,
+);
+
+/**
+ * @summary Start a recurring Stripe checkout session
+ */
+export const CreateSubscriptionCheckoutSessionBody = zod.object({
+  plan: zod.enum(["monthly", "quarterly", "annual"]),
+});
+
+export const CreateSubscriptionCheckoutSessionResponse = zod.object({
+  url: zod.string(),
+  sessionId: zod.string().optional(),
+});
+
+/**
+ * @summary Open Stripe billing portal for the current user
+ */
+export const CreateSubscriptionBillingPortalResponse = zod.object({
+  url: zod.string(),
+  sessionId: zod.string().optional(),
 });
 
 /**

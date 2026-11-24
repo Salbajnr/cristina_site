@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearchParams } from "wouter";
 import { useUserAuth } from "@/hooks/use-user-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,12 @@ import { Loader2, Mail, User, Lock } from "lucide-react";
 
 export default function Register() {
   const [, setLocation] = useLocation();
+  const [params] = useSearchParams();
+  const requestedReturn = params.get("next");
+  const returnTo =
+    requestedReturn?.startsWith("/") && !requestedReturn.startsWith("//")
+      ? requestedReturn
+      : "/";
   const { register, registerLoading } = useUserAuth();
   const { toast } = useToast();
 
@@ -56,8 +62,12 @@ export default function Register() {
         password: formData.password,
       },
       {
-        onSuccess: () => {
-          setLocation("/");
+        onSuccess: ({ hasSession }) => {
+          setLocation(
+            hasSession
+              ? returnTo
+              : `/login?next=${encodeURIComponent(returnTo)}`,
+          );
         },
       }
     );

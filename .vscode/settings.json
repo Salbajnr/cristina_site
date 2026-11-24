@@ -1,0 +1,6 @@
+{
+    "python.terminal.useEnvFile": true,
+    "js/ts.experimental.useTsgo": false,
+    "chat.disableAIFeatures": false,
+    "chat.permissions.default": "autoApprove"
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearchParams } from "wouter";
 import { useUserAuth } from "@/hooks/use-user-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,12 @@ import { Loader2, Lock, Mail, User } from "lucide-react";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const [params] = useSearchParams();
+  const requestedReturn = params.get("next");
+  const returnTo =
+    requestedReturn?.startsWith("/") && !requestedReturn.startsWith("//")
+      ? requestedReturn
+      : "/";
   const { login, loginLoading } = useUserAuth();
   const { toast } = useToast();
 
@@ -31,7 +37,7 @@ export default function Login() {
 
     login(formData, {
       onSuccess: () => {
-        setLocation("/");
+        setLocation(returnTo);
       },
     });
   };

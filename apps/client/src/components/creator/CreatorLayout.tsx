@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { isAuthenticated, clearCreatorToken } from "@/lib/auth";
+import { useUserAuth } from "@/hooks/use-user-auth";
 import { useGetProfile } from "@workspace/api-client-react";
 import { 
   LayoutDashboard, 
@@ -25,20 +25,22 @@ interface CreatorLayoutProps {
 export default function CreatorLayout({ children }: CreatorLayoutProps) {
   const [location, setLocation] = useLocation();
   const { data: profile } = useGetProfile();
+  const { user, isLoadingUser, logout, logoutLoading } = useUserAuth();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isLoadingUser && !user) {
       setLocation("/creator/login");
     }
-  }, [location, setLocation]);
+  }, [isLoadingUser, location, setLocation, user]);
 
-  if (!isAuthenticated()) {
+  if (isLoadingUser || !user) {
     return null; // Will redirect
   }
 
   const handleLogout = () => {
-    clearCreatorToken();
-    setLocation("/creator/login");
+    logout(undefined, {
+      onSuccess: () => setLocation("/creator/login"),
+    });
   };
 
   const navItems = [
@@ -46,6 +48,7 @@ export default function CreatorLayout({ children }: CreatorLayoutProps) {
     { href: "/creator/content", label: "Content", icon: ImageIcon },
     { href: "/creator/posts", label: "Free Feed", icon: Rss },
     { href: "/creator/purchases", label: "Purchases", icon: CreditCard },
+    { href: "/creator/chat", label: "Private Chat", icon: MessageSquare },
     { href: "/creator/inquiries", label: "Enquiries", icon: MessageSquare },
     { href: "/creator/profile", label: "Profile", icon: User },
   ];
@@ -91,7 +94,7 @@ export default function CreatorLayout({ children }: CreatorLayoutProps) {
             View Public Site
           </Button>
         </Link>
-        <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" onClick={handleLogout}>
+        <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" onClick={handleLogout} disabled={logoutLoading}>
           <LogOut className="mr-2 h-4 w-4" />
           Logout
         </Button>

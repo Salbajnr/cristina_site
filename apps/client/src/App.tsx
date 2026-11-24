@@ -14,6 +14,7 @@ import Subscriptions from "@/pages/Subscriptions";
 import Notifications from "@/pages/Notifications";
 import Settings from "@/pages/Settings";
 import Feed from "@/pages/Feed";
+import Chat from "@/pages/Chat";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import CreatorLogin from "@/pages/creator/Login";
@@ -21,8 +22,10 @@ import CreatorDashboard from "@/pages/creator/Dashboard";
 import CreatorContent from "@/pages/creator/Content";
 import CreatorProfile from "@/pages/creator/Profile";
 import CreatorPurchases from "@/pages/creator/Purchases";
+import CreatorChat from "@/pages/creator/Chat";
 import CreatorInquiries from "@/pages/creator/Inquiries";
 import CreatorPosts from "@/pages/creator/Posts";
+import LiveUpdateNotifications from "@/components/LiveUpdateNotifications";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +39,7 @@ function Router() {
       <Route path="/feed" component={Feed} />
       <Route path="/search" component={Explore} />
       <Route path="/messages" component={Messages} />
+      <Route path="/chat" component={Chat} />
       <Route path="/bookmarks" component={Bookmarks} />
       <Route path="/subscriptions" component={Subscriptions} />
       <Route path="/notifications" component={Notifications} />
@@ -50,6 +54,7 @@ function Router() {
       <Route path="/creator/content" component={CreatorContent} />
       <Route path="/creator/profile" component={CreatorProfile} />
       <Route path="/creator/purchases" component={CreatorPurchases} />
+      <Route path="/creator/chat" component={CreatorChat} />
       <Route path="/creator/inquiries" component={CreatorInquiries} />
       <Route path="/creator/posts" component={CreatorPosts} />
       
@@ -62,6 +67,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <LiveUpdateNotifications />
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
         </WouterRouter>

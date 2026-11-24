@@ -13,8 +13,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Video, Grid, Lock, MapPin, Calendar, Heart, Share } from "lucide-react";
 import { formatNumber, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("all");
   
   const { data: profile, isLoading: isProfileLoading } = useGetProfile();
@@ -26,10 +30,20 @@ export default function Home() {
     bundles: "bundle",
   };
   const type = typeMap[activeTab];
+  const shareProfile = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.origin);
+      toast({ title: "Profile link copied" });
+    } catch {
+      toast({
+        title: "Unable to copy link",
+        description: "Your browser did not allow access to the clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const { data: contentItems, isLoading: isContentLoading } = useListContent({ 
-    type: type as any
-  });
+  const { data: contentItems, isLoading: isContentLoading } = useListContent({ type: type as any });
 
   return (
     <div className="min-h-screen bg-background flex justify-center selection:bg-primary/30">
@@ -52,10 +66,22 @@ export default function Home() {
           </div>
 
           <div className="absolute top-4 right-4 flex gap-2">
-            <Button variant="outline" size="icon" className="rounded-full bg-black/20 backdrop-blur-md border-white/10 hover:bg-white/10 text-white">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Copy profile link"
+              onClick={shareProfile}
+              className="rounded-full bg-black/20 backdrop-blur-md border-white/10 hover:bg-white/10 text-white"
+            >
               <Share className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="icon" className="rounded-full bg-black/20 backdrop-blur-md border-white/10 hover:bg-white/10 text-white">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="View subscription plans"
+              onClick={() => setLocation("/subscriptions")}
+              className="rounded-full bg-black/20 backdrop-blur-md border-white/10 hover:bg-white/10 text-white"
+            >
               <Heart className="w-4 h-4" />
             </Button>
           </div>

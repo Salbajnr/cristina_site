@@ -8,6 +8,8 @@ import creatorRouter from "./creator";
 import inquiriesRouter from "./inquiries";
 import postsRouter from "./posts";
 import authRouter from "./auth";
+import likesRouter from "./likes";
+import subscriptionsRouter from "./subscriptions";
 
 const router: IRouter = Router();
 
@@ -20,6 +22,8 @@ router.use(purchasesRouter);
 router.use(creatorRouter);
 router.use(inquiriesRouter);
 router.use(postsRouter);
+router.use("/likes", likesRouter);
+router.use("/subscriptions", subscriptionsRouter);
 
 export default router;
 

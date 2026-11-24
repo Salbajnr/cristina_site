@@ -4,4 +4,7 @@ export * from "./content";
 export * from "./purchases";
 export * from "./inquiries";
 export * from "./posts";
+export * from "./likes";
+export * from "./subscriptions";
+export * from "./content-comments";
 export * from "./users";

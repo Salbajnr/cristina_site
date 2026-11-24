@@ -1,42 +1,75 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useGetProfile } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Globe, Bell, Shield, CreditCard, ChevronRight, Moon } from "lucide-react";
+import { Bell, ChevronRight, CreditCard, Globe, Moon, Shield, Sun } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useUserAuth } from "@/hooks/use-user-auth";
 
-const settingGroups = [
-  {
-    title: "Preferences",
-    items: [
-      { icon: Moon, label: "Appearance", description: "Dark mode is always on", action: "Dark mode" },
-      { icon: Globe, label: "Language", description: "English / Español", action: "English" },
-    ],
-  },
-  {
-    title: "Notifications",
-    items: [
-      { icon: Bell, label: "Push notifications", description: "New content, messages, and updates", action: "Manage" },
-    ],
-  },
-  {
-    title: "Account",
-    items: [
-      { icon: CreditCard, label: "Billing & Subscriptions", description: "Manage your active plan", action: "View", href: "/subscriptions" },
-      { icon: Shield, label: "Privacy", description: "Control who sees your activity", action: "Manage" },
-    ],
-  },
-];
+const THEME_KEY = "cristina_theme";
+const NOTIFICATIONS_ENABLED_KEY = "cristina_desktop_notifications";
+
+function getInitialTheme(): "dark" | "light" {
+  return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
+}
 
 export default function Settings() {
   const { data: profile } = useGetProfile();
   const { toast } = useToast();
+  const { logout, logoutLoading } = useUserAuth();
+  const [, setLocation] = useLocation();
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    () => localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) === "true",
+  );
 
-  const handleAction = (label: string) => {
-    toast({ title: "Coming soon", description: `${label} settings will be available soon.` });
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    document.documentElement.classList.toggle("light", nextTheme === "light");
+    localStorage.setItem(THEME_KEY, nextTheme);
+    setTheme(nextTheme);
+  };
+
+  const toggleNotifications = async () => {
+    if (notificationsEnabled) {
+      localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, "false");
+      setNotificationsEnabled(false);
+      return;
+    }
+
+    if (!("Notification" in window)) {
+      toast({
+        title: "Desktop notifications are unavailable",
+        description: "This browser does not support desktop notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const permission =
+      Notification.permission === "granted"
+        ? "granted"
+        : await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      toast({
+        title: "Notifications were not enabled",
+        description: "Allow notifications in your browser to receive live update alerts.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, "true");
+    setNotificationsEnabled(true);
+    toast({
+      title: "Desktop notifications enabled",
+      description: "New posts and content will alert you while this site is open.",
+    });
   };
 
   return (
@@ -63,47 +96,112 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {settingGroups.map((group) => (
-            <div key={group.title} className="space-y-2">
-              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest px-1">{group.title}</h2>
-              <Card className="bg-white/5 border-border/50 divide-y divide-border/30">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const inner = (
-                    <div className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors cursor-pointer group">
-                      <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{item.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground">{item.action}</span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      </div>
-                    </div>
-                  );
-
-                  return item.href ? (
-                    <Link key={item.label} href={item.href}>{inner}</Link>
+          <section className="space-y-2">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest px-1">
+              Preferences
+            </h2>
+            <Card className="bg-white/5 border-border/50 divide-y divide-border/30">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-white/5"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  {theme === "dark" ? (
+                    <Moon className="h-5 w-5 text-primary" />
                   ) : (
-                    <div key={item.label} onClick={() => handleAction(item.label)}>
-                      {inner}
-                    </div>
-                  );
-                })}
-              </Card>
-            </div>
-          ))}
+                    <Sun className="h-5 w-5 text-primary" />
+                  )}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-foreground">Appearance</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Choose a light or dark theme
+                  </span>
+                </span>
+                <span className="text-xs capitalize text-muted-foreground">{theme}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+
+              <div className="flex items-center gap-4 p-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  <Globe className="h-5 w-5 text-primary" />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-foreground">Language</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    English is currently the available language
+                  </span>
+                </span>
+                <span className="text-xs text-muted-foreground">English</span>
+              </div>
+            </Card>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest px-1">
+              Notifications
+            </h2>
+            <Card className="bg-white/5 border-border/50">
+              <button
+                type="button"
+                onClick={toggleNotifications}
+                className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-white/5"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  <Bell className="h-5 w-5 text-primary" />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-foreground">Desktop notifications</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Alerts for new posts while this site is open
+                  </span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {notificationsEnabled ? "Enabled" : "Off"}
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </Card>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest px-1">
+              Account
+            </h2>
+            <Card className="bg-white/5 border-border/50 divide-y divide-border/30">
+              <Link href="/subscriptions" className="flex items-center gap-4 p-4 transition-colors hover:bg-white/5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-foreground">Billing & Subscriptions</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    View subscription options
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+              <div className="flex items-center gap-4 p-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  <Shield className="h-5 w-5 text-primary" />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-foreground">Privacy</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Privacy controls are not available yet
+                  </span>
+                </span>
+              </div>
+            </Card>
+          </section>
 
           <div className="pt-4">
             <Button
               variant="ghost"
               className="w-full text-muted-foreground hover:text-foreground border border-border/50 rounded-xl py-5"
-              onClick={() => {
-                toast({ title: "Coming soon", description: "Account management will be available soon." });
-              }}
+              disabled={logoutLoading}
+              onClick={() => logout(undefined, { onSuccess: () => setLocation("/login") })}
             >
               Sign out
             </Button>

@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Heart, Play, Send, Rss } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
+import { useLike } from "@/hooks/use-like";
 
 function CommentSection({ postId }: { postId: number }) {
   const { data: comments, isLoading } = useListComments(postId);
@@ -98,6 +99,7 @@ function PostCard({ post }: { post: any }) {
   const [showComments, setShowComments] = useState(false);
   const { data: profile } = useGetProfile();
   const { data: comments } = useListComments(post.id);
+  const { count: likeCount, isLiked, isLoading: isLoadingLikes, isUpdating, toggleLike } = useLike("post", post.id);
 
   const isPhoto = post.type === "photo";
   const isVideo = post.type === "video";
@@ -157,8 +159,18 @@ function PostCard({ post }: { post: any }) {
 
       {/* Actions */}
       <div className="px-4 pb-4 flex items-center gap-4 border-t border-border/20 pt-3">
-        <button className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors text-sm group">
-          <Heart className="w-4 h-4 group-hover:scale-110 transition-transform" />
+        <button
+          type="button"
+          onClick={toggleLike}
+          disabled={isLoadingLikes || isUpdating}
+          aria-label={isLiked ? "Unlike post" : "Like post"}
+          aria-pressed={isLiked}
+          className={`flex items-center gap-1.5 transition-colors text-sm group disabled:opacity-50 ${
+            isLiked ? "text-primary" : "text-muted-foreground hover:text-primary"
+          }`}
+        >
+          <Heart className={`h-4 w-4 transition-transform group-hover:scale-110 ${isLiked ? "fill-current" : ""}`} />
+          <span>{likeCount}</span>
         </button>
         <button
           onClick={() => setShowComments(!showComments)}

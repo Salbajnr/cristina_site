@@ -1,37 +1,16 @@
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ContentCard } from "@/components/content/ContentCard";
 import { useListContent } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Bookmark } from "lucide-react";
 import { Link } from "wouter";
-
-const BOOKMARKS_KEY = "cristina_bookmarks";
-
-export function getBookmarks(): number[] {
-  try {
-    return JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-export function toggleBookmark(id: number): boolean {
-  const bookmarks = getBookmarks();
-  const idx = bookmarks.indexOf(id);
-  if (idx === -1) {
-    bookmarks.push(id);
-    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
-    return true;
-  } else {
-    bookmarks.splice(idx, 1);
-    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
-    return false;
-  }
-}
+import { getBookmarks, subscribeToBookmarks } from "@/lib/bookmarks";
 
 export default function Bookmarks() {
   const { data: allContent, isLoading } = useListContent({});
-  const bookmarkedIds = getBookmarks();
+  const [bookmarkedIds, setBookmarkedIds] = useState(getBookmarks);
+  useEffect(() => subscribeToBookmarks(() => setBookmarkedIds(getBookmarks())), []);
   const bookmarked = (allContent ?? []).filter((item) => bookmarkedIds.includes(item.id));
 
   return (

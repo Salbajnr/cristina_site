@@ -57,7 +57,6 @@ export function RightSidebar() {
           {[
             { icon: Eye, text: "Uncensored photos & videos — nothing held back" },
             { icon: Flame, text: "New exclusive drops every week" },
-            { icon: Star, text: "Private DMs — she replies personally" },
             { icon: Crown, text: "VIP access — only for serious fans" },
           ].map(({ icon: Icon, text }, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-foreground/80 bg-white/4 rounded-xl p-3 border border-white/6 hover:border-primary/20 transition-colors">
@@ -65,6 +64,15 @@ export function RightSidebar() {
               <span>{text}</span>
             </li>
           ))}
+        <li>
+          <Link
+            href="/chat"
+            className="flex items-start gap-3 text-sm text-foreground/80 bg-white/4 rounded-xl p-3 border border-white/6 hover:border-primary/20 transition-colors"
+          >
+            <Star className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <span>Private DMs — <span className="text-primary">start a conversation</span></span>
+          </Link>
+        </li>
         </ul>
       </div>
 

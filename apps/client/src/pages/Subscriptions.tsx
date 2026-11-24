@@ -1,12 +1,20 @@
+import { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetProfile, useGetSiteStats } from "@workspace/api-client-react";
 import { ShieldCheck, Star, Check, Zap, Heart, Lock } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useUserAuth } from "@/hooks/use-user-auth";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const plans = [
   {
+    id: "monthly",
     name: "Monthly",
     price: "$19.99",
     period: "per month",
@@ -15,6 +23,7 @@ const plans = [
     highlight: false,
   },
   {
+    id: "quarterly",
     name: "3 Months",
     price: "$14.99",
     period: "per month",
@@ -23,6 +32,7 @@ const plans = [
     highlight: true,
   },
   {
+    id: "annual",
     name: "Annual",
     price: "$9.99",
     period: "per month",
@@ -42,6 +52,57 @@ const perks = [
 export default function Subscriptions() {
   const { data: profile } = useGetProfile();
   const { data: stats } = useGetSiteStats();
+  const { getToken } = useUserAuth();
+  const { toast } = useToast();
+  const [isOpeningBilling, setIsOpeningBilling] = useState(false);
+  const token = getToken();
+  const {
+    data: activeSubscriptions = [],
+    isError: isSubscriptionError,
+  } = useQuery({
+    queryKey: ["subscriptions/me"],
+    enabled: Boolean(token),
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/subscriptions/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error("Unable to load subscription status.");
+      }
+      return response.json() as Promise<Array<{ plan: string; status: string; createdAt: string }>>;
+    },
+  });
+
+  const openBillingPortal = async () => {
+    if (!token) return;
+
+    try {
+      setIsOpeningBilling(true);
+      const response = await fetch(`${API_URL}/subscriptions/portal`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error || "Unable to open billing settings.");
+      }
+
+      const result = await response.json();
+      if (typeof result.url !== "string" || !result.url) {
+        throw new Error("Billing portal did not return a URL.");
+      }
+      window.location.href = result.url;
+    } catch (error) {
+      toast({
+        title: "Unable to manage subscription",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsOpeningBilling(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex justify-center selection:bg-primary/30">
@@ -49,6 +110,31 @@ export default function Subscriptions() {
 
       <main className="flex-1 max-w-2xl w-full md:ml-20 xl:ml-64 pb-20 md:pb-0 px-4 py-8">
         <div className="space-y-8">
+          {activeSubscriptions.length > 0 && (
+            <Card className="border-green-500/30 bg-green-500/5">
+              <CardContent className="p-4">
+                <p className="font-medium text-foreground">Active subscription</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your {activeSubscriptions[0].plan} membership is {activeSubscriptions[0].status}.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={openBillingPortal}
+                  disabled={isOpeningBilling}
+                >
+                  {isOpeningBilling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Manage or cancel
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          {isSubscriptionError && (
+            <p role="alert" className="text-sm text-destructive">
+              Subscription status could not be loaded.
+            </p>
+          )}
           <div className="text-center space-y-2">
             <h1 className="font-serif text-3xl font-bold text-foreground">Subscribe to Cristina</h1>
             <p className="text-muted-foreground">
@@ -84,17 +170,26 @@ export default function Subscriptions() {
                   </div>
                 </CardContent>
                 <div className="px-6 pb-6">
-                  <Link href="/checkout" className="block">
+                  {activeSubscriptions.length > 0 || isSubscriptionError ? (
                     <Button
-                      className={`w-full rounded-full py-5 text-base font-medium transition-all ${
-                        plan.highlight
-                          ? "bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(153,27,84,0.3)] hover:shadow-[0_0_30px_rgba(153,27,84,0.5)]"
-                          : "bg-white/10 hover:bg-white/15 text-foreground border border-white/10"
-                      }`}
+                      disabled
+                      className="w-full rounded-full py-5 text-base font-medium"
                     >
-                      Subscribe — {plan.price}/mo
+                      {activeSubscriptions.length > 0 ? "Manage your active subscription above" : "Subscription status unavailable"}
                     </Button>
-                  </Link>
+                  ) : (
+                    <Link href={`/checkout?plan=${plan.id}`} className="block">
+                      <Button
+                        className={`w-full rounded-full py-5 text-base font-medium transition-all ${
+                          plan.highlight
+                            ? "bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(153,27,84,0.3)] hover:shadow-[0_0_30px_rgba(153,27,84,0.5)]"
+                            : "bg-white/10 hover:bg-white/15 text-foreground border border-white/10"
+                        }`}
+                      >
+                        Subscribe — {plan.price}/mo
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </Card>
             ))}

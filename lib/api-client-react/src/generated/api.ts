@@ -18,25 +18,32 @@ import type {
 
 import type {
   Category,
+  CheckoutStatus,
+  CheckoutUrl,
   Comment,
+  ContentComment,
   ContentItem,
+  CreateCheckoutBody,
   CreateCommentBody,
   CreateContentBody,
+  CreateContentCommentBody,
   CreateInquiryBody,
   CreatePostBody,
   CreatePurchaseBody,
+  CreateSubscriptionCheckoutBody,
   DeleteResult,
   HealthStatus,
   Inquiry,
+  LikeState,
   ListContentParams,
   Post,
   Profile,
   Purchase,
+  SetLikeBody,
   SiteStats,
+  Subscription,
   UpdateContentBody,
   UpdateProfileBody,
-  VerifyCreatorBody,
-  VerifyCreatorResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -613,6 +620,181 @@ export function useGetFeaturedContent<
 }
 
 /**
+ * @summary List comments for content
+ */
+export const getListContentCommentsUrl = (id: number) => {
+  return `/api/content/${id}/comments`;
+};
+
+export const listContentComments = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ContentComment[]> => {
+  return customFetch<ContentComment[]>(getListContentCommentsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListContentCommentsQueryKey = (id: number) => {
+  return [`/api/content/${id}/comments`] as const;
+};
+
+export const getListContentCommentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listContentComments>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listContentComments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListContentCommentsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listContentComments>>
+  > = ({ signal }) => listContentComments(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listContentComments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListContentCommentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listContentComments>>
+>;
+export type ListContentCommentsQueryError = ErrorType<void>;
+
+/**
+ * @summary List comments for content
+ */
+
+export function useListContentComments<
+  TData = Awaited<ReturnType<typeof listContentComments>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listContentComments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListContentCommentsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a comment to content
+ */
+export const getCreateContentCommentUrl = (id: number) => {
+  return `/api/content/${id}/comments`;
+};
+
+export const createContentComment = async (
+  id: number,
+  createContentCommentBody: CreateContentCommentBody,
+  options?: RequestInit,
+): Promise<ContentComment> => {
+  return customFetch<ContentComment>(getCreateContentCommentUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createContentCommentBody),
+  });
+};
+
+export const getCreateContentCommentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createContentComment>>,
+    TError,
+    { id: number; data: BodyType<CreateContentCommentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createContentComment>>,
+  TError,
+  { id: number; data: BodyType<CreateContentCommentBody> },
+  TContext
+> => {
+  const mutationKey = ["createContentComment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createContentComment>>,
+    { id: number; data: BodyType<CreateContentCommentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createContentComment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateContentCommentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createContentComment>>
+>;
+export type CreateContentCommentMutationBody =
+  BodyType<CreateContentCommentBody>;
+export type CreateContentCommentMutationError = ErrorType<void>;
+
+/**
+ * @summary Add a comment to content
+ */
+export const useCreateContentComment = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createContentComment>>,
+    TError,
+    { id: number; data: BodyType<CreateContentCommentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createContentComment>>,
+  TError,
+  { id: number; data: BodyType<CreateContentCommentBody> },
+  TContext
+> => {
+  return useMutation(getCreateContentCommentMutationOptions(options));
+};
+
+/**
  * @summary Get a single content item
  */
 export const getGetContentUrl = (id: number) => {
@@ -1107,42 +1289,42 @@ export const useCreatePurchase = <
 };
 
 /**
- * @summary Verify creator password
+ * @summary Start a one-time content checkout (signed-in user required)
  */
-export const getVerifyCreatorUrl = () => {
-  return `/api/creator/verify`;
+export const getCreateContentCheckoutSessionUrl = () => {
+  return `/api/purchases/checkout-session`;
 };
 
-export const verifyCreator = async (
-  verifyCreatorBody: VerifyCreatorBody,
+export const createContentCheckoutSession = async (
+  createCheckoutBody: CreateCheckoutBody,
   options?: RequestInit,
-): Promise<VerifyCreatorResult> => {
-  return customFetch<VerifyCreatorResult>(getVerifyCreatorUrl(), {
+): Promise<CheckoutUrl> => {
+  return customFetch<CheckoutUrl>(getCreateContentCheckoutSessionUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(verifyCreatorBody),
+    body: JSON.stringify(createCheckoutBody),
   });
 };
 
-export const getVerifyCreatorMutationOptions = <
-  TError = ErrorType<void>,
+export const getCreateContentCheckoutSessionMutationOptions = <
+  TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof verifyCreator>>,
+    Awaited<ReturnType<typeof createContentCheckoutSession>>,
     TError,
-    { data: BodyType<VerifyCreatorBody> },
+    { data: BodyType<CreateCheckoutBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof verifyCreator>>,
+  Awaited<ReturnType<typeof createContentCheckoutSession>>,
   TError,
-  { data: BodyType<VerifyCreatorBody> },
+  { data: BodyType<CreateCheckoutBody> },
   TContext
 > => {
-  const mutationKey = ["verifyCreator"];
+  const mutationKey = ["createContentCheckoutSession"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -1152,45 +1334,135 @@ export const getVerifyCreatorMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof verifyCreator>>,
-    { data: BodyType<VerifyCreatorBody> }
+    Awaited<ReturnType<typeof createContentCheckoutSession>>,
+    { data: BodyType<CreateCheckoutBody> }
   > = (props) => {
     const { data } = props ?? {};
 
-    return verifyCreator(data, requestOptions);
+    return createContentCheckoutSession(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type VerifyCreatorMutationResult = NonNullable<
-  Awaited<ReturnType<typeof verifyCreator>>
+export type CreateContentCheckoutSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createContentCheckoutSession>>
 >;
-export type VerifyCreatorMutationBody = BodyType<VerifyCreatorBody>;
-export type VerifyCreatorMutationError = ErrorType<void>;
+export type CreateContentCheckoutSessionMutationBody =
+  BodyType<CreateCheckoutBody>;
+export type CreateContentCheckoutSessionMutationError = ErrorType<unknown>;
 
 /**
- * @summary Verify creator password
+ * @summary Start a one-time content checkout (signed-in user required)
  */
-export const useVerifyCreator = <
-  TError = ErrorType<void>,
+export const useCreateContentCheckoutSession = <
+  TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof verifyCreator>>,
+    Awaited<ReturnType<typeof createContentCheckoutSession>>,
     TError,
-    { data: BodyType<VerifyCreatorBody> },
+    { data: BodyType<CreateCheckoutBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof verifyCreator>>,
+  Awaited<ReturnType<typeof createContentCheckoutSession>>,
   TError,
-  { data: BodyType<VerifyCreatorBody> },
+  { data: BodyType<CreateCheckoutBody> },
   TContext
 > => {
-  return useMutation(getVerifyCreatorMutationOptions(options));
+  return useMutation(getCreateContentCheckoutSessionMutationOptions(options));
 };
+
+/**
+ * @summary Verify checkout completion for the signed-in user
+ */
+export const getGetCheckoutSessionStatusUrl = (id: string) => {
+  return `/api/purchases/checkout-session/${id}`;
+};
+
+export const getCheckoutSessionStatus = async (
+  id: string,
+  options?: RequestInit,
+): Promise<CheckoutStatus> => {
+  return customFetch<CheckoutStatus>(getGetCheckoutSessionStatusUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCheckoutSessionStatusQueryKey = (id: string) => {
+  return [`/api/purchases/checkout-session/${id}`] as const;
+};
+
+export const getGetCheckoutSessionStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCheckoutSessionStatus>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCheckoutSessionStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCheckoutSessionStatusQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCheckoutSessionStatus>>
+  > = ({ signal }) =>
+    getCheckoutSessionStatus(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCheckoutSessionStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCheckoutSessionStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCheckoutSessionStatus>>
+>;
+export type GetCheckoutSessionStatusQueryError = ErrorType<void>;
+
+/**
+ * @summary Verify checkout completion for the signed-in user
+ */
+
+export function useGetCheckoutSessionStatus<
+  TData = Awaited<ReturnType<typeof getCheckoutSessionStatus>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCheckoutSessionStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCheckoutSessionStatusQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List all free posts
@@ -1676,6 +1948,434 @@ export const useDeletePost = <
   TContext
 > => {
   return useMutation(getDeletePostMutationOptions(options));
+};
+
+/**
+ * @summary Get the like count and current user's state
+ */
+export const getGetLikeStateUrl = (type: "content" | "post", id: number) => {
+  return `/api/likes/${type}/${id}`;
+};
+
+export const getLikeState = async (
+  type: "content" | "post",
+  id: number,
+  options?: RequestInit,
+): Promise<LikeState> => {
+  return customFetch<LikeState>(getGetLikeStateUrl(type, id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLikeStateQueryKey = (
+  type: "content" | "post",
+  id: number,
+) => {
+  return [`/api/likes/${type}/${id}`] as const;
+};
+
+export const getGetLikeStateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLikeState>>,
+  TError = ErrorType<void>,
+>(
+  type: "content" | "post",
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLikeState>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLikeStateQueryKey(type, id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLikeState>>> = ({
+    signal,
+  }) => getLikeState(type, id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(type && id),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLikeState>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLikeStateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLikeState>>
+>;
+export type GetLikeStateQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the like count and current user's state
+ */
+
+export function useGetLikeState<
+  TData = Awaited<ReturnType<typeof getLikeState>>,
+  TError = ErrorType<void>,
+>(
+  type: "content" | "post",
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLikeState>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLikeStateQueryOptions(type, id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Like or unlike content (signed-in user required)
+ */
+export const getSetLikeStateUrl = (type: "content" | "post", id: number) => {
+  return `/api/likes/${type}/${id}`;
+};
+
+export const setLikeState = async (
+  type: "content" | "post",
+  id: number,
+  setLikeBody: SetLikeBody,
+  options?: RequestInit,
+): Promise<LikeState> => {
+  return customFetch<LikeState>(getSetLikeStateUrl(type, id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setLikeBody),
+  });
+};
+
+export const getSetLikeStateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setLikeState>>,
+    TError,
+    { type: "content" | "post"; id: number; data: BodyType<SetLikeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setLikeState>>,
+  TError,
+  { type: "content" | "post"; id: number; data: BodyType<SetLikeBody> },
+  TContext
+> => {
+  const mutationKey = ["setLikeState"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setLikeState>>,
+    { type: "content" | "post"; id: number; data: BodyType<SetLikeBody> }
+  > = (props) => {
+    const { type, id, data } = props ?? {};
+
+    return setLikeState(type, id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetLikeStateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setLikeState>>
+>;
+export type SetLikeStateMutationBody = BodyType<SetLikeBody>;
+export type SetLikeStateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Like or unlike content (signed-in user required)
+ */
+export const useSetLikeState = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setLikeState>>,
+    TError,
+    { type: "content" | "post"; id: number; data: BodyType<SetLikeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setLikeState>>,
+  TError,
+  { type: "content" | "post"; id: number; data: BodyType<SetLikeBody> },
+  TContext
+> => {
+  return useMutation(getSetLikeStateMutationOptions(options));
+};
+
+/**
+ * @summary List the current user's active subscriptions
+ */
+export const getGetMySubscriptionsUrl = () => {
+  return `/api/subscriptions/me`;
+};
+
+export const getMySubscriptions = async (
+  options?: RequestInit,
+): Promise<Subscription[]> => {
+  return customFetch<Subscription[]>(getGetMySubscriptionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMySubscriptionsQueryKey = () => {
+  return [`/api/subscriptions/me`] as const;
+};
+
+export const getGetMySubscriptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMySubscriptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMySubscriptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMySubscriptionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMySubscriptions>>
+  > = ({ signal }) => getMySubscriptions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMySubscriptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMySubscriptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMySubscriptions>>
+>;
+export type GetMySubscriptionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the current user's active subscriptions
+ */
+
+export function useGetMySubscriptions<
+  TData = Awaited<ReturnType<typeof getMySubscriptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMySubscriptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMySubscriptionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Start a recurring Stripe checkout session
+ */
+export const getCreateSubscriptionCheckoutSessionUrl = () => {
+  return `/api/subscriptions/checkout-session`;
+};
+
+export const createSubscriptionCheckoutSession = async (
+  createSubscriptionCheckoutBody: CreateSubscriptionCheckoutBody,
+  options?: RequestInit,
+): Promise<CheckoutUrl> => {
+  return customFetch<CheckoutUrl>(getCreateSubscriptionCheckoutSessionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSubscriptionCheckoutBody),
+  });
+};
+
+export const getCreateSubscriptionCheckoutSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSubscriptionCheckoutSession>>,
+    TError,
+    { data: BodyType<CreateSubscriptionCheckoutBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSubscriptionCheckoutSession>>,
+  TError,
+  { data: BodyType<CreateSubscriptionCheckoutBody> },
+  TContext
+> => {
+  const mutationKey = ["createSubscriptionCheckoutSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSubscriptionCheckoutSession>>,
+    { data: BodyType<CreateSubscriptionCheckoutBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSubscriptionCheckoutSession(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSubscriptionCheckoutSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSubscriptionCheckoutSession>>
+>;
+export type CreateSubscriptionCheckoutSessionMutationBody =
+  BodyType<CreateSubscriptionCheckoutBody>;
+export type CreateSubscriptionCheckoutSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Start a recurring Stripe checkout session
+ */
+export const useCreateSubscriptionCheckoutSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSubscriptionCheckoutSession>>,
+    TError,
+    { data: BodyType<CreateSubscriptionCheckoutBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSubscriptionCheckoutSession>>,
+  TError,
+  { data: BodyType<CreateSubscriptionCheckoutBody> },
+  TContext
+> => {
+  return useMutation(
+    getCreateSubscriptionCheckoutSessionMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Open Stripe billing portal for the current user
+ */
+export const getCreateSubscriptionBillingPortalUrl = () => {
+  return `/api/subscriptions/portal`;
+};
+
+export const createSubscriptionBillingPortal = async (
+  options?: RequestInit,
+): Promise<CheckoutUrl> => {
+  return customFetch<CheckoutUrl>(getCreateSubscriptionBillingPortalUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCreateSubscriptionBillingPortalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSubscriptionBillingPortal>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSubscriptionBillingPortal>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["createSubscriptionBillingPortal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSubscriptionBillingPortal>>,
+    void
+  > = () => {
+    return createSubscriptionBillingPortal(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSubscriptionBillingPortalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSubscriptionBillingPortal>>
+>;
+
+export type CreateSubscriptionBillingPortalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Open Stripe billing portal for the current user
+ */
+export const useCreateSubscriptionBillingPortal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSubscriptionBillingPortal>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSubscriptionBillingPortal>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(
+    getCreateSubscriptionBillingPortalMutationOptions(options),
+  );
 };
 
 /**

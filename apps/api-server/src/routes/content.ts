@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { contentTable, categoriesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { contentTable, categoriesTable, contentCommentsTable } from "@workspace/db";
+import { desc, eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -76,6 +76,46 @@ router.get("/content/:id", async (req, res) => {
   const c = items[0];
 
   return res.json(formatContent(c, c.categoryId ? catMap.get(c.categoryId) : undefined));
+});
+
+router.get("/content/:id/comments", async (req, res) => {
+  const contentId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(contentId) || contentId <= 0) {
+    return res.status(400).json({ error: "Invalid id" });
+  }
+
+  const [content] = await db.select({ id: contentTable.id }).from(contentTable).where(eq(contentTable.id, contentId));
+  if (!content) return res.status(404).json({ error: "Not found" });
+
+  const comments = await db
+    .select()
+    .from(contentCommentsTable)
+    .where(eq(contentCommentsTable.contentId, contentId))
+    .orderBy(desc(contentCommentsTable.createdAt));
+  return res.json(comments);
+});
+
+router.post("/content/:id/comments", async (req, res) => {
+  const contentId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(contentId) || contentId <= 0) {
+    return res.status(400).json({ error: "Invalid id" });
+  }
+
+  const authorName = typeof req.body?.authorName === "string" ? req.body.authorName.trim() : "";
+  const body = typeof req.body?.body === "string" ? req.body.body.trim() : "";
+  if (!authorName || authorName.length > 100 || !body || body.length > 2000) {
+    return res.status(400).json({ error: "Name and comment are required (maximum 100 and 2000 characters)." });
+  }
+
+  const [content] = await db.select({ id: contentTable.id }).from(contentTable).where(eq(contentTable.id, contentId));
+  if (!content) return res.status(404).json({ error: "Not found" });
+
+  const [comment] = await db.insert(contentCommentsTable).values({ contentId, authorName, body }).returning();
+  await db
+    .update(contentTable)
+    .set({ commentCount: sql`${contentTable.commentCount} + 1` })
+    .where(eq(contentTable.id, contentId));
+  return res.status(201).json(comment);
 });
 
 export default router;

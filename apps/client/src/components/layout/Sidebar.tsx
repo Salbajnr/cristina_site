@@ -3,6 +3,7 @@ import {
   Home, 
   Search, 
   MessageCircle, 
+  MessageSquare,
   Bookmark, 
   Heart, 
   Bell, 
@@ -22,6 +23,7 @@ export function Sidebar() {
     { icon: Rss, label: "Free Feed", href: "/feed" },
     { icon: Search, label: "Explore", href: "/search" },
     { icon: MessageCircle, label: "Messages", href: "/messages" },
+    { icon: MessageSquare, label: "Private Chat", href: "/chat" },
     { icon: Bookmark, label: "Bookmarks", href: "/bookmarks" },
     { icon: Heart, label: "Subscriptions", href: "/subscriptions" },
     { icon: Bell, label: "Notifications", href: "/notifications" },
@@ -65,7 +67,11 @@ export function Sidebar() {
       </div>
 
       <div className="px-0 xl:px-6 w-full flex justify-center xl:justify-start">
-        <button className="flex items-center gap-3 p-2 xl:p-3 rounded-full xl:rounded-xl hover:bg-white/5 transition-colors w-full">
+        <Link
+          href="/settings"
+          aria-label="Open account settings"
+          className="flex items-center gap-3 p-2 xl:p-3 rounded-full xl:rounded-xl hover:bg-white/5 transition-colors w-full"
+        >
           <Avatar className="w-10 h-10 border border-primary/30">
             <AvatarImage src={profile?.avatarUrl || "/avatar.jpg"} className="object-cover" />
             <AvatarFallback>CL</AvatarFallback>
@@ -75,7 +81,7 @@ export function Sidebar() {
             <span className="text-xs text-muted-foreground truncate w-full">@{profile?.username || "cristinalucero"}</span>
           </div>
           <MoreHorizontal className="hidden xl:block w-5 h-5 text-muted-foreground" />
-        </button>
+        </Link>
       </div>
     </aside>
   );

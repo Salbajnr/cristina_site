@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { postsTable, commentsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { postsTable, commentsTable, likesTable } from "@workspace/db";
+import { and, eq, desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -41,6 +41,9 @@ router.delete("/creator/posts/:id", async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   await db.delete(postsTable).where(eq(postsTable.id, id));
   await db.delete(commentsTable).where(eq(commentsTable.postId, id));
+  await db
+    .delete(likesTable)
+    .where(and(eq(likesTable.targetType, "post"), eq(likesTable.targetId, id)));
   return res.json({ success: true, id });
 });
 

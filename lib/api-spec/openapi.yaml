@@ -23,6 +23,10 @@ tags:
     description: Visitor enquiries
   - name: posts
     description: Free public posts and comments
+  - name: likes
+    description: User likes for content and posts
+  - name: subscriptions
+    description: Stripe subscription operations
 paths:
   /healthz:
     get:
@@ -141,6 +145,56 @@ paths:
                 items:
                   $ref: "#/components/schemas/ContentItem"
 
+  /content/{id}/comments:
+    get:
+      operationId: listContentComments
+      tags: [content]
+      summary: List comments for content
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Content comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentComment"
+        "404":
+          description: Content not found
+    post:
+      operationId: createContentComment
+      tags: [content]
+      summary: Add a comment to content
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContentCommentBody"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentComment"
+        "400":
+          description: Invalid comment
+        "404":
+          description: Content not found
+
   /content/{id}:
     get:
       operationId: getContent
@@ -251,26 +305,49 @@ paths:
         "400":
           description: Invalid request
 
-  /creator/verify:
+  /purchases/checkout-session:
     post:
-      operationId: verifyCreator
-      tags: [creator]
-      summary: Verify creator password
+      operationId: createContentCheckoutSession
+      tags: [purchases]
+      summary: Start a one-time content checkout (signed-in user required)
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/VerifyCreatorBody"
+              $ref: "#/components/schemas/CreateCheckoutBody"
       responses:
         "200":
-          description: Verified
+          description: Stripe checkout URL
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VerifyCreatorResult"
-        "401":
-          description: Unauthorized
+                $ref: "#/components/schemas/CheckoutUrl"
+
+  /purchases/checkout-session/{id}:
+    get:
+      operationId: getCheckoutSessionStatus
+      tags: [purchases]
+      summary: Verify checkout completion for the signed-in user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment verification state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutStatus"
+        "403":
+          description: Session does not belong to this user
 
   /posts:
     get:
@@ -388,6 +465,117 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeleteResult"
 
+  /likes/{type}/{id}:
+    get:
+      operationId: getLikeState
+      tags: [likes]
+      summary: Get the like count and current user's state
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [content, post]
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Like state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeState"
+        "404":
+          description: Target not found
+    put:
+      operationId: setLikeState
+      tags: [likes]
+      summary: Like or unlike content (signed-in user required)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [content, post]
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetLikeBody"
+      responses:
+        "200":
+          description: Updated like state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeState"
+
+  /subscriptions/me:
+    get:
+      operationId: getMySubscriptions
+      tags: [subscriptions]
+      summary: List the current user's active subscriptions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Active subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+
+  /subscriptions/checkout-session:
+    post:
+      operationId: createSubscriptionCheckoutSession
+      tags: [subscriptions]
+      summary: Start a recurring Stripe checkout session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionCheckoutBody"
+      responses:
+        "200":
+          description: Stripe checkout URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutUrl"
+
+  /subscriptions/portal:
+    post:
+      operationId: createSubscriptionBillingPortal
+      tags: [subscriptions]
+      summary: Open Stripe billing portal for the current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Stripe billing portal URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutUrl"
+
   /inquiries:
     post:
       operationId: createInquiry
@@ -444,6 +632,10 @@ paths:
                 $ref: "#/components/schemas/Inquiry"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
     HealthStatus:
       type: object
@@ -651,22 +843,6 @@ components:
           type: string
       required: [id, contentId, contentTitle, customerEmail, amount, status, createdAt]
 
-    VerifyCreatorBody:
-      type: object
-      properties:
-        password:
-          type: string
-      required: [password]
-
-    VerifyCreatorResult:
-      type: object
-      properties:
-        success:
-          type: boolean
-        token:
-          type: string
-      required: [success, token]
-
     CreateInquiryBody:
       type: object
       properties:
@@ -746,6 +922,32 @@ components:
           type: string
       required: [id, postId, authorName, body, createdAt]
 
+    ContentComment:
+      type: object
+      properties:
+        id:
+          type: integer
+        contentId:
+          type: integer
+        authorName:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+      required: [id, contentId, authorName, body, createdAt]
+
+    CreateContentCommentBody:
+      type: object
+      properties:
+        authorName:
+          type: string
+          maxLength: 100
+        body:
+          type: string
+          maxLength: 2000
+      required: [authorName, body]
+
     CreateCommentBody:
       type: object
       properties:
@@ -754,3 +956,69 @@ components:
         body:
           type: string
       required: [authorName, body]
+
+    LikeState:
+      type: object
+      properties:
+        count:
+          type: integer
+        isLiked:
+          type: boolean
+      required: [count, isLiked]
+
+    SetLikeBody:
+      type: object
+      properties:
+        liked:
+          type: boolean
+      required: [liked]
+
+    Subscription:
+      type: object
+      properties:
+        plan:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+      required: [plan, status, createdAt]
+
+    CreateSubscriptionCheckoutBody:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [monthly, quarterly, annual]
+      required: [plan]
+
+    CheckoutUrl:
+      type: object
+      properties:
+        url:
+          type: string
+        sessionId:
+          type: string
+      required: [url]
+
+    CreateCheckoutBody:
+      type: object
+      properties:
+        contentId:
+          type: integer
+      required: [contentId]
+
+    CheckoutStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [processing, complete]
+        type:
+          type: string
+          enum: [content, subscription]
+        contentId:
+          type: integer
+        plan:
+          type: string
+      required: [status]

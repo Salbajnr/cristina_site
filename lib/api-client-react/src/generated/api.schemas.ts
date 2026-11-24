@@ -137,15 +137,6 @@ export interface Purchase {
   createdAt: string;
 }
 
-export interface VerifyCreatorBody {
-  password: string;
-}
-
-export interface VerifyCreatorResult {
-  success: boolean;
-  token: string;
-}
-
 export interface CreateInquiryBody {
   name: string;
   email: string;
@@ -204,9 +195,84 @@ export interface Comment {
   createdAt: string;
 }
 
+export interface ContentComment {
+  id: number;
+  contentId: number;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface CreateContentCommentBody {
+  /** @maxLength 100 */
+  authorName: string;
+  /** @maxLength 2000 */
+  body: string;
+}
+
 export interface CreateCommentBody {
   authorName: string;
   body: string;
+}
+
+export interface LikeState {
+  count: number;
+  isLiked: boolean;
+}
+
+export interface SetLikeBody {
+  liked: boolean;
+}
+
+export interface Subscription {
+  plan: string;
+  status: string;
+  createdAt: string;
+}
+
+export type CreateSubscriptionCheckoutBodyPlan =
+  (typeof CreateSubscriptionCheckoutBodyPlan)[keyof typeof CreateSubscriptionCheckoutBodyPlan];
+
+export const CreateSubscriptionCheckoutBodyPlan = {
+  monthly: "monthly",
+  quarterly: "quarterly",
+  annual: "annual",
+} as const;
+
+export interface CreateSubscriptionCheckoutBody {
+  plan: CreateSubscriptionCheckoutBodyPlan;
+}
+
+export interface CheckoutUrl {
+  url: string;
+  sessionId?: string;
+}
+
+export interface CreateCheckoutBody {
+  contentId: number;
+}
+
+export type CheckoutStatusStatus =
+  (typeof CheckoutStatusStatus)[keyof typeof CheckoutStatusStatus];
+
+export const CheckoutStatusStatus = {
+  processing: "processing",
+  complete: "complete",
+} as const;
+
+export type CheckoutStatusType =
+  (typeof CheckoutStatusType)[keyof typeof CheckoutStatusType];
+
+export const CheckoutStatusType = {
+  content: "content",
+  subscription: "subscription",
+} as const;
+
+export interface CheckoutStatus {
+  status: CheckoutStatusStatus;
+  type?: CheckoutStatusType;
+  contentId?: number;
+  plan?: string;
 }
 
 export type ListContentParams = {

@@ -1,22 +1,18 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { profileTable, contentTable, categoriesTable, purchasesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import {
+  profileTable,
+  contentTable,
+  categoriesTable,
+  purchasesTable,
+  likesTable,
+  contentCommentsTable,
+} from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 import { verifyCreatorToken } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 
 const router = Router();
-
-const CREATOR_PASSWORD = process.env.CREATOR_PASSWORD ?? "cristina2024";
-const CREATOR_TOKEN = process.env.CREATOR_TOKEN || "cristina-creator-session-token-secure";
-
-router.post("/creator/verify", async (req, res) => {
-  const { password } = req.body ?? {};
-  if (!password || password !== CREATOR_PASSWORD) {
-    return res.status(401).json({ success: false, token: "" });
-  }
-  return res.json({ success: true, token: CREATOR_TOKEN });
-});
 
 // All routes below require creator authentication
 router.use(verifyCreatorToken);
@@ -181,7 +177,21 @@ router.delete("/content/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
 
-    const deleted = await db.delete(contentTable).where(eq(contentTable.id, id)).returning();
+    const deleted = await db.transaction(async (tx) => {
+      const removed = await tx.delete(contentTable).where(eq(contentTable.id, id)).returning();
+      if (removed.length > 0) {
+        await tx.delete(contentCommentsTable).where(eq(contentCommentsTable.contentId, id));
+        await tx
+          .delete(likesTable)
+          .where(
+            and(
+              eq(likesTable.targetType, "content"),
+              eq(likesTable.targetId, id),
+            ),
+          );
+      }
+      return removed;
+    });
     if (deleted.length === 0) return res.status(404).json({ error: "Not found" });
 
     await syncProfileCounts();

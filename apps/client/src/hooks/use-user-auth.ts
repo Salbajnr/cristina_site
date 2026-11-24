@@ -1,7 +1,11 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
+import { supabase } from "@/lib/supabase";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const AUTH_QUERY_KEY = ["auth/me"];
+export const USER_TOKEN_STORAGE_KEY = "user_token";
 
 interface User {
   id: number;
@@ -9,64 +13,94 @@ interface User {
   name: string;
 }
 
-interface LoginResponse {
-  id: number;
-  email: string;
-  name: string;
-  token: string;
+function setStoredToken(token: string | null) {
+  if (token) {
+    localStorage.setItem(USER_TOKEN_STORAGE_KEY, token);
+  } else {
+    localStorage.removeItem(USER_TOKEN_STORAGE_KEY);
+  }
 }
 
 export function useUserAuth() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Get token from localStorage
-  const getToken = () => localStorage.getItem("user_token");
-  const setToken = (token: string) => localStorage.setItem("user_token", token);
-  const clearToken = () => localStorage.removeItem("user_token");
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      setStoredToken(session?.access_token ?? null);
+      if (event !== "INITIAL_SESSION") {
+        void queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
+      }
+    });
 
-  // Get current user
-  const { data: user, isLoading: isLoadingUser } = useQuery<User | null>({
-    queryKey: ["auth/me"],
+    return () => data.subscription.unsubscribe();
+  }, [queryClient]);
+
+  const { data: user = null, isLoading: isLoadingUser } = useQuery<User | null>({
+    queryKey: AUTH_QUERY_KEY,
     queryFn: async () => {
-      const token = getToken();
-      if (!token) return null;
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        throw error;
+      }
+
+      const token = data.session?.access_token;
+      setStoredToken(token ?? null);
+      if (!token) {
+        return null;
+      }
 
       const res = await fetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) {
-        clearToken();
+      if (res.status === 401) {
+        await supabase.auth.signOut();
+        setStoredToken(null);
         return null;
+      }
+
+      if (!res.ok) {
+        throw new Error("Unable to load your account. Please try again.");
       }
 
       return res.json();
     },
-    enabled: !!getToken(),
+    retry: false,
   });
 
-  // Register
   const registerMutation = useMutation({
     mutationFn: async (data: { email: string; name: string; password: string }) => {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      const { data: result, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: { name: data.name },
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Registration failed");
+      if (error) {
+        throw error;
       }
 
-      return res.json() as Promise<LoginResponse>;
+      if (!result.user) {
+        throw new Error("Supabase did not return a user after registration.");
+      }
+
+      return { hasSession: Boolean(result.session) };
     },
-    onSuccess: (data) => {
-      setToken(data.token);
-      toast({
-        title: "Success",
-        description: "Account created successfully!",
-      });
+    onSuccess: async ({ hasSession }) => {
+      if (hasSession) {
+        await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
+        toast({ title: "Success", description: "Account created successfully!" });
+      } else {
+        setStoredToken(null);
+        toast({
+          title: "Check your email",
+          description: "Confirm your email address before signing in.",
+        });
+      }
     },
     onError: (error) => {
       toast({
@@ -77,28 +111,27 @@ export function useUserAuth() {
     },
   });
 
-  // Login
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      const { data: result, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Login failed");
+      if (error) {
+        throw error;
       }
 
-      return res.json() as Promise<LoginResponse>;
+      if (!result.session) {
+        throw new Error("Supabase did not create a session after signing in.");
+      }
+
+      setStoredToken(result.session.access_token);
+      return result;
     },
-    onSuccess: (data) => {
-      setToken(data.token);
-      toast({
-        title: "Success",
-        description: "Logged in successfully!",
-      });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
+      toast({ title: "Success", description: "Logged in successfully!" });
     },
     onError: (error) => {
       toast({
@@ -109,21 +142,35 @@ export function useUserAuth() {
     },
   });
 
-  const logout = () => {
-    clearToken();
-  };
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      setStoredToken(null);
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(AUTH_QUERY_KEY, null);
+      toast({ title: "Signed out", description: "You have been signed out." });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
 
-  const isAuthenticated = !!getToken();
+  const getToken = () => localStorage.getItem(USER_TOKEN_STORAGE_KEY);
 
   return {
     user,
     isLoadingUser,
-    isAuthenticated,
+    isAuthenticated: !!user,
     getToken,
     register: registerMutation.mutate,
     registerLoading: registerMutation.isPending,
     login: loginMutation.mutate,
     loginLoading: loginMutation.isPending,
-    logout,
+    logout: logoutMutation.mutate,
+    logoutLoading: logoutMutation.isPending,
   };
 }

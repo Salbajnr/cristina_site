@@ -1,15 +1,35 @@
+import { useEffect, useState } from "react";
 import { ContentItem } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Lock, Heart, MessageCircle, Play } from "lucide-react";
+import { Bookmark, Lock, Heart, MessageCircle, Play } from "lucide-react";
 import { Link } from "wouter";
+import { getBookmarks, subscribeToBookmarks, toggleBookmark } from "@/lib/bookmarks";
+import { useToast } from "@/hooks/use-toast";
 
 export function ContentCard({ content }: { content: ContentItem }) {
   const isVideo = content.type === "video";
   const isLocked = content.isLocked;
+  const [bookmarked, setBookmarked] = useState(() => getBookmarks().includes(content.id));
+  const { toast } = useToast();
 
-  // Use generated placeholder images based on ID for visual variety
+  const handleBookmark = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const isBookmarked = toggleBookmark(content.id);
+    setBookmarked(isBookmarked);
+    toast({
+      title: isBookmarked ? "Saved to bookmarks" : "Removed from bookmarks",
+    });
+  };
+
+  useEffect(() => {
+    return subscribeToBookmarks(() => {
+      setBookmarked(getBookmarks().includes(content.id));
+    });
+  }, [content.id]);
+
   const getPreviewImage = (id: number) => {
-    if (!isLocked && content.previewUrl) return content.previewUrl;
+    if (content.previewUrl) return content.previewUrl;
     const index = (id % 6) + 1;
     return `/preview-${index}.png`;
   };
@@ -18,6 +38,15 @@ export function ContentCard({ content }: { content: ContentItem }) {
     <Link href={`/content/${content.id}`}>
       <Card className="bg-background overflow-hidden border-border/50 hover:border-primary/50 transition-colors group cursor-pointer relative">
         <div className="aspect-[4/5] relative bg-black/50 overflow-hidden">
+          <button
+            type="button"
+            onClick={handleBookmark}
+            aria-label={bookmarked ? "Remove bookmark" : "Save bookmark"}
+            aria-pressed={bookmarked}
+            className="absolute right-3 top-3 z-30 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-primary"
+          >
+            <Bookmark className={`h-4 w-4 ${bookmarked ? "fill-current text-primary" : ""}`} />
+          </button>
           <img 
             src={getPreviewImage(content.id)} 
             alt={content.title}
