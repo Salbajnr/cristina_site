@@ -13,6 +13,7 @@ import { ContentCard } from "@/components/content/ContentCard";
 import { formatDate } from "@/lib/format";
 import { useLike } from "@/hooks/use-like";
 import { useToast } from "@/hooks/use-toast";
+import { fetchSupabaseApi } from "@/lib/supabase-api";
 
 export default function ContentDetail() {
   const params = useParams();
@@ -24,8 +25,7 @@ export default function ContentDetail() {
   const [showComments, setShowComments] = useState(false);
   const [commenterName, setCommenterName] = useState("");
   const [commentBody, setCommentBody] = useState("");
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-  
+
   const { data: content, isLoading, isError, queryKey: contentQueryKey } = useGetContent(id);
   const {
     data: comments,
@@ -34,7 +34,7 @@ export default function ContentDetail() {
   } = useQuery<Array<{ id: number; authorName: string; body: string; createdAt: string }>>({
     queryKey: ["content-comments", id],
     queryFn: async () => {
-      const response = await fetch(`${API_URL}/content/${id}/comments`);
+      const response = await fetchSupabaseApi(`/content/${id}/comments`);
       if (!response.ok) throw new Error("Unable to load comments.");
       return response.json();
     },
@@ -43,7 +43,7 @@ export default function ContentDetail() {
   });
   const addComment = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_URL}/content/${id}/comments`, {
+      const response = await fetchSupabaseApi(`/content/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ authorName: commenterName.trim(), body: commentBody.trim() }),
@@ -87,7 +87,7 @@ export default function ContentDetail() {
       const token = getToken();
       if (!token) return [];
 
-      const res = await fetch(`${API_URL}/purchases`, {
+      const res = await fetchSupabaseApi("/purchases", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -103,7 +103,7 @@ export default function ContentDetail() {
       const token = getToken();
       if (!token) return [];
 
-      const response = await fetch(`${API_URL}/subscriptions/me`, {
+      const response = await fetchSupabaseApi("/subscriptions/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {

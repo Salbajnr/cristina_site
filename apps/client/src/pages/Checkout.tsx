@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { fetchSupabaseApi } from "@/lib/supabase-api";
 
 const subscriptionPlans = {
   monthly: { name: "Monthly membership", price: "$19.99", billed: "per month" },
@@ -30,7 +31,6 @@ export default function Checkout() {
     contentId,
     { query: { queryKey: getGetContentQueryKey(contentId), enabled: !plan && validContentId } },
   );
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
   const price = plan?.price ?? (content ? `$${content.price.toFixed(2)}` : "—");
 
   const handleStripeCheckout = async () => {
@@ -53,7 +53,7 @@ export default function Checkout() {
     try {
       setIsLoading(true);
       const endpoint = plan ? "subscriptions/checkout-session" : "purchases/checkout-session";
-      const response = await fetch(`${API_URL}/${endpoint}`, {
+      const response = await fetchSupabaseApi(`/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

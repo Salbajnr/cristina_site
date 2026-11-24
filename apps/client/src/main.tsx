@@ -1,17 +1,15 @@
 import { createRoot } from "react-dom/client";
-import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
+import { setApiRequestHandler, setAuthTokenGetter } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 import { supabase } from "./lib/supabase";
+import { supabaseApiRequest } from "./lib/supabase-api";
 
 if (localStorage.getItem("cristina_theme") === "light") {
   document.documentElement.classList.add("light");
 }
 
-// Configure API base URL for development
-if (import.meta.env.MODE === "development") {
-  setBaseUrl("http://localhost:3000");
-}
+setApiRequestHandler(supabaseApiRequest);
 
 setAuthTokenGetter(async () => {
   const { data, error } = await supabase.auth.getSession();

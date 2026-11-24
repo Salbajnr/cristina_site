@@ -3,8 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUserAuth } from "@/hooks/use-user-auth";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import { fetchSupabaseApi } from "@/lib/supabase-api";
 
 interface CheckoutStatus {
   status: "processing" | "complete";
@@ -29,8 +28,8 @@ export default function CheckoutSuccess() {
       return 3_000;
     },
     queryFn: async () => {
-      const response = await fetch(
-        `${API_URL}/purchases/checkout-session/${encodeURIComponent(sessionId!)}`,
+      const response = await fetchSupabaseApi(
+        `/purchases/checkout-session/${encodeURIComponent(sessionId!)}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!response.ok) {

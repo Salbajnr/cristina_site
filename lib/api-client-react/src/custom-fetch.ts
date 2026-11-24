@@ -7,6 +7,10 @@ export type ErrorType<T = unknown> = ApiError<T>;
 export type BodyType<T> = T;
 
 export type AuthTokenGetter = () => Promise<string | null> | string | null;
+export type ApiRequestHandler = (
+  input: RequestInfo | URL,
+  init: RequestInit,
+) => Promise<Response | null>;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
@@ -17,6 +21,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _apiRequestHandler: ApiRequestHandler | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +47,10 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+export function setApiRequestHandler(handler: ApiRequestHandler | null): void {
+  _apiRequestHandler = handler;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -360,12 +369,16 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const requestInit = { ...init, method, headers };
+  const response = _apiRequestHandler
+    ? await _apiRequestHandler(input, requestInit)
+    : null;
+  const result = response ?? (await fetch(input, requestInit));
 
-  if (!response.ok) {
-    const errorData = await parseErrorBody(response, method);
-    throw new ApiError(response, errorData, requestInfo);
+  if (!result.ok) {
+    const errorData = await parseErrorBody(result, method);
+    throw new ApiError(result, errorData, requestInfo);
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  return (await parseSuccessBody(result, responseType, requestInfo)) as T;
 }

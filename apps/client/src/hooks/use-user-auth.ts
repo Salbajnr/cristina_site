@@ -3,12 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
 import { supabase } from "@/lib/supabase";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const AUTH_QUERY_KEY = ["auth/me"];
 export const USER_TOKEN_STORAGE_KEY = "user_token";
 
 interface User {
-  id: number;
+  id: string;
   email: string;
   name: string;
 }
@@ -50,21 +49,24 @@ export function useUserAuth() {
         return null;
       }
 
-      const res = await fetch(`${API_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.status === 401) {
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+      if (userError) {
         await supabase.auth.signOut();
         setStoredToken(null);
         return null;
       }
 
-      if (!res.ok) {
-        throw new Error("Unable to load your account. Please try again.");
-      }
+      const authUser = userData.user;
+      if (!authUser?.email) return null;
 
-      return res.json();
+      return {
+        id: authUser.id,
+        email: authUser.email,
+        name:
+          typeof authUser.user_metadata.name === "string" && authUser.user_metadata.name.trim()
+            ? authUser.user_metadata.name.trim()
+            : authUser.email.split("@")[0],
+      };
     },
     retry: false,
   });

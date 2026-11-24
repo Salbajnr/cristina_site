@@ -6,8 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import { USER_TOKEN_STORAGE_KEY } from "@/hooks/use-user-auth";
 import { useToast } from "@/hooks/use-toast";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import { fetchSupabaseApi } from "@/lib/supabase-api";
 
 export type LikeTargetType = "content" | "post";
 
@@ -18,7 +17,7 @@ interface LikeState {
 
 async function readLikeState(type: LikeTargetType, id: number): Promise<LikeState> {
   const token = localStorage.getItem(USER_TOKEN_STORAGE_KEY);
-  const response = await fetch(`${API_URL}/likes/${type}/${id}`, {
+  const response = await fetchSupabaseApi(`/likes/${type}/${id}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
@@ -46,7 +45,7 @@ export function useLike(type: LikeTargetType, id: number, fallbackCount = 0) {
         throw new Error("Sign in to like content.");
       }
 
-      const response = await fetch(`${API_URL}/likes/${type}/${id}`, {
+      const response = await fetchSupabaseApi(`/likes/${type}/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

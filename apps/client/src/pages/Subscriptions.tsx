@@ -9,8 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useUserAuth } from "@/hooks/use-user-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import { fetchSupabaseApi } from "@/lib/supabase-api";
 
 const plans = [
   {
@@ -64,7 +63,7 @@ export default function Subscriptions() {
     enabled: Boolean(token),
     refetchInterval: 30_000,
     queryFn: async () => {
-      const response = await fetch(`${API_URL}/subscriptions/me`, {
+      const response = await fetchSupabaseApi("/subscriptions/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
@@ -79,7 +78,7 @@ export default function Subscriptions() {
 
     try {
       setIsOpeningBilling(true);
-      const response = await fetch(`${API_URL}/subscriptions/portal`, {
+      const response = await fetchSupabaseApi("/subscriptions/portal", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
